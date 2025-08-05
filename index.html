@@ -34,25 +34,36 @@
       color: #111;
     }
 
-    /* Tab styles */
-    .tab-menu {
-      display: flex;
-      justify-content: center;
-      margin-top: 20px;
-    }
-
-    .tab-menu button {
+    /* Draggable Sidebar styles */
+    .meter-list {
+      width: 250px;
       background-color: #111;
       color: #00ffcc;
-      padding: 10px 20px;
-      border: 2px solid #00ffcc;
-      border-radius: 5px;
-      cursor: pointer;
-      transition: background-color 0.3s;
-      margin-right: 10px;
+      padding: 10px;
+      border-radius: 8px;
+      position: absolute;
+      top: 100px;
+      left: 0;
+      transition: all 0.3s ease;
     }
 
-    .tab-menu button:hover {
+    .meter-list.dragging {
+      left: -250px;
+    }
+
+    .meter-list button {
+      background-color: #111;
+      color: #00ffcc;
+      padding: 10px;
+      width: 100%;
+      border: 2px solid #00ffcc;
+      border-radius: 5px;
+      margin-bottom: 10px;
+      cursor: pointer;
+      transition: background-color 0.3s;
+    }
+
+    .meter-list button:hover {
       background-color: #00ffcc;
       color: #111;
     }
@@ -84,6 +95,11 @@
       font-size: 24px;
     }
 
+    .value-box .unit {
+      font-size: 14px;
+      color: #00ffcc;
+    }
+
     /* Loading */
     .loading {
       color: yellow;
@@ -96,9 +112,9 @@
     <h1>Energy Monitoring Dashboard</h1>
   </header>
 
-  <!-- Tab Menu for Meter Selection -->
-  <div class="tab-menu" id="meterTabs">
-    <!-- Buttons will be added here dynamically -->
+  <!-- Draggable Meter List -->
+  <div class="meter-list" id="meterList">
+    <!-- Meter buttons will be added here dynamically -->
   </div>
 
   <!-- Display Values -->
@@ -121,22 +137,28 @@
 
     let currentMeter = null;  // Store the selected meter
 
-    // Create tabs based on available meters
+    // Function to convert machine timestamp to human-readable format
+    function convertTimestamp(timestamp) {
+      const date = new Date(timestamp);
+      return date.toLocaleString();  // Returns in format: YYYY-MM-DD HH:MM:SS
+    }
+
+    // Create draggable sidebar for meter selection
+    const meterList = document.getElementById("meterList");
+
     db.ref().once("value").then(snapshot => {
       const data = snapshot.val();
-      const meterTabs = document.getElementById("meterTabs");
-      const valuesDisplay = document.getElementById("valuesDisplay");
 
       if (!data) {
-        meterTabs.innerHTML = "<p style='color:red;'>No data paths found.</p>";
+        meterList.innerHTML = "<p style='color:red;'>No data paths found.</p>";
         return;
       }
 
       Object.keys(data).forEach(path => {
-        const tabButton = document.createElement("button");
-        tabButton.innerText = path;
-        tabButton.onclick = () => selectMeter(path);  // Change to select the clicked meter
-        meterTabs.appendChild(tabButton);
+        const meterButton = document.createElement("button");
+        meterButton.innerText = path;
+        meterButton.onclick = () => selectMeter(path);  // Change to select the clicked meter
+        meterList.appendChild(meterButton);
       });
     });
 
@@ -170,11 +192,55 @@
             boxValue.textContent = data[key];
             valueBox.appendChild(boxValue);
 
+            // Add unit (example: voltage -> V, current -> C)
+            const unit = document.createElement("div");
+            unit.className = "unit";
+            if (key.toLowerCase().includes("voltage")) {
+              unit.textContent = "(V)";
+            } else if (key.toLowerCase().includes("current")) {
+              unit.textContent = "(C)";
+            }
+            valueBox.appendChild(unit);
+
             valuesDisplay.appendChild(valueBox);
           }
         });
+
+        // Convert and display timestamp
+        const timestampBox = document.createElement("div");
+        timestampBox.className = "value-box";
+        const timestampTitle = document.createElement("h4");
+        timestampTitle.textContent = "Timestamp";
+        timestampBox.appendChild(timestampTitle);
+
+        const timestampValue = document.createElement("div");
+        timestampValue.className = "value";
+        timestampValue.textContent = convertTimestamp(data.Timestamp);
+        timestampBox.appendChild(timestampValue);
+
+        valuesDisplay.appendChild(timestampBox);
       });
     }
+
+    // Draggable functionality
+    let isDragging = false;
+    let startX;
+
+    meterList.addEventListener('mousedown', (e) => {
+      isDragging = true;
+      startX = e.clientX;
+    });
+
+    document.addEventListener('mousemove', (e) => {
+      if (!isDragging) return;
+      const diff = e.clientX - startX;
+      meterList.style.left = `${Math.min(0, diff)}px`;
+    });
+
+    document.addEventListener('mouseup', () => {
+      isDragging = false;
+    });
+
   </script>
 </body>
 </html>
