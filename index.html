@@ -219,6 +219,9 @@
           return;
         }
 
+        // Clear previous content to avoid stacking old data
+        valuesDisplay.innerHTML = "";
+
         // Create boxes for each value of the selected meter
         Object.keys(data).forEach(key => {
           if (key !== "Timestamp") {
