@@ -168,7 +168,7 @@
 
   <!-- Sidebar -->
   <div class="sidebar">
-    <h2>Select Data Paths</h2>
+    <h2>Select Meters</h2>
     <button onclick="toggleAll(true)">Select All</button>
     <button onclick="toggleAll(false)">Deselect All</button>
     <form id="pathSelector"></form>
@@ -221,11 +221,13 @@
     const form = document.getElementById("pathSelector");
     const listeners = {};
 
+    // Function to toggle the sidebar visibility
     function toggleSidebar() {
       const sidebar = document.querySelector(".sidebar");
       sidebar.classList.toggle("open");
     }
 
+    // Function to select or deselect all checkboxes
     function toggleAll(select) {
       const checkboxes = document.querySelectorAll("#pathSelector input[type=checkbox]");
       checkboxes.forEach(cb => {
@@ -233,6 +235,7 @@
       });
     }
 
+    // Function to create a card for each meter
     function createCard(title, data = {}, fallbackTimestamp = null) {
       let html = `<div class="card"><h3>${title}</h3>`;
 
@@ -250,11 +253,6 @@
       if (typeof ts === "string") ts = parseInt(ts);
       if (ts < 10000000000) ts *= 1000;
 
-      // Only subtract 5 hours for "Machine_shop_main"
-      if (title === "Machine_shop_main") {
-        ts -= 5 * 60 * 60 * 1000;
-      }
-
       const timeStr = new Date(ts).toLocaleString();
       html += `<div class="timestamp">⏱ ${timeStr}</div>`;
 
@@ -262,6 +260,7 @@
       return html;
     }
 
+    // Function to update a card with new data
     function updateCard(path, data) {
       const timestamp = data?.Timestamp || Date.now();
       const cardEl = document.querySelector(`[data-path="${path}"]`);
@@ -270,6 +269,7 @@
       }
     }
 
+    // Function to initialize a card for each meter
     function initCard(path) {
       let wrapper = document.querySelector(`[data-path="${path}"]`);
       if (!wrapper) {
@@ -281,6 +281,7 @@
       }
     }
 
+    // Function to remove a card for a selected meter
     function removeCard(path) {
       const wrapper = document.querySelector(`[data-path="${path}"]`);
       if (wrapper) wrapper.remove();
@@ -290,6 +291,7 @@
       }
     }
 
+    // Function to handle the selection of meters
     db.ref().once("value").then(snapshot => {
       const data = snapshot.val();
       if (!data) {
@@ -321,47 +323,6 @@
         form.appendChild(label);
       });
     });
-
-    // Chart.js configuration for combined chart
-    const timeLabels = [];
-    const combinedChartCtx = document.getElementById('combinedChart').getContext('2d');
-    const combinedChart = new Chart(combinedChartCtx, {
-      type: 'line',
-      data: {
-        labels: timeLabels,
-        datasets: [
-          {
-            label: 'AVERAGE_PHASE_VOLTAGE',
-            data: [],
-            borderColor: 'rgba(255, 99, 132, 1)',
-            fill: false,
-            tension: 0.1
-          },
-          {
-            label: 'TOTAL_POWER',
-            data: [],
-            borderColor: 'rgba(54, 162, 235, 1)',
-            fill: false,
-            tension: 0.1
-          },
-          {
-            label: 'Average_current',
-            data: [],
-            borderColor: 'rgba(75, 192, 192, 1)',
-            fill: false,
-            tension: 0.1
-          }
-        ]
-      },
-      options: {
-        responsive: true,
-        scales: {
-          x: { title: { display: true, text: 'Time' } },
-          y: { title: { display: true, text: 'Values' } }
-        }
-      }
-    });
-
   </script>
 </body>
 </html>
