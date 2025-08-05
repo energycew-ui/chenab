@@ -105,7 +105,7 @@
       text-align: center;
       box-shadow: 0 0 20px #ecf0f188;
       transition: transform 0.3s ease;
-      word-wrap: break-word; /* Ensure text wraps within the box */
+      word-wrap: break-word;
     }
 
     .value-box:hover {
@@ -121,7 +121,6 @@
     .value-box .value {
       color: #f39c12;
       font-size: 28px;
-      word-wrap: break-word;
     }
 
     .value-box .unit {
@@ -155,6 +154,44 @@
       border-radius: 5px;
       z-index: 11;
     }
+
+    /* Graph Section */
+    .graph-container {
+      width: 90%;
+      margin-top: 50px;
+      padding: 20px;
+      background-color: #34495e;
+      border-radius: 10px;
+      box-shadow: 0 0 20px #ecf0f188;
+    }
+
+    .graph-title {
+      color: #ecf0f1;
+      font-size: 24px;
+      margin-bottom: 10px;
+    }
+
+    .graph-controls {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 20px;
+    }
+
+    .graph-controls button {
+      padding: 10px;
+      background-color: #2ecc71;
+      color: #34495e;
+      border: none;
+      font-weight: bold;
+      cursor: pointer;
+      border-radius: 5px;
+    }
+
+    .graph-controls button:hover {
+      background-color: #ecf0f1;
+      color: #34495e;
+    }
+
   </style>
 </head>
 <body>
@@ -177,6 +214,17 @@
   <!-- Button to open/close the sidebar -->
   <button class="toggle-sidebar" onclick="toggleSidebar()">☰</button>
 
+  <!-- Graph Section -->
+  <div class="graph-container" id="graphSection">
+    <div class="graph-title">Energy Metrics Over Time</div>
+    <div class="graph-controls">
+      <button id="togglePhaseVoltage">Average Phase Voltage</button>
+      <button id="toggleCurrent">Average Current</button>
+      <button id="togglePower">Total Power</button>
+    </div>
+    <canvas id="energyGraph"></canvas>
+  </div>
+
   <script>
     const firebaseConfig = {
       apiKey: "AIzaSyDX7V2tnn17aWwTSvmJQRCNwUdRsbKuHRI",
@@ -190,7 +238,13 @@
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
 
-    let currentMeter = null;  // Store the selected meter
+    let currentMeter = null;
+    let data = {
+      phaseVoltage: [],
+      current: [],
+      power: [],
+      timestamps: []
+    };
 
     // Function to convert machine timestamp to human-readable format
     function convertTimestamp(timestamp) {
@@ -202,14 +256,14 @@
     const meterList = document.getElementById("meterList");
 
     db.ref().once("value").then(snapshot => {
-      const data = snapshot.val();
+      const dataFromFirebase = snapshot.val();
 
-      if (!data) {
+      if (!dataFromFirebase) {
         meterList.innerHTML = "<p style='color:red;'>No data paths found.</p>";
         return;
       }
 
-      Object.keys(data).forEach(path => {
+      Object.keys(dataFromFirebase).forEach(path => {
         const meterButton = document.createElement("button");
         meterButton.innerText = path;
         meterButton.onclick = () => selectMeter(path);  // Change to select the clicked meter
@@ -219,28 +273,28 @@
 
     // Function to fetch and display data for selected meter
     function selectMeter(path) {
-      currentMeter = path;  // Update the selected meter
+      currentMeter = path;
       const valuesDisplay = document.getElementById("valuesDisplay");
       valuesDisplay.innerHTML = ""; // Clear previous data
 
       const meterRef = db.ref(path);
-      meterRef.on("value", (snapshot) => {  // Using on() for live data updates
-        const data = snapshot.val();
+      meterRef.on("value", (snapshot) => {  
+        const dataFromFirebase = snapshot.val();
 
-        if (!data || Object.keys(data).length === 0) {
+        if (!dataFromFirebase || Object.keys(dataFromFirebase).length === 0) {
           valuesDisplay.innerHTML = `<div class="loading">Loading...</div>`;
           return;
         }
 
         // Update the "Last Updated" timestamp
         const updatedTime = document.getElementById("updatedTime");
-        updatedTime.textContent = `Last Updated: ${convertTimestamp(data.Timestamp)}`;
+        updatedTime.textContent = `Last Updated: ${convertTimestamp(dataFromFirebase.Timestamp)}`;
 
         // Clear previous content to avoid stacking old data
         valuesDisplay.innerHTML = "";
 
         // Create boxes for each value of the selected meter
-        Object.keys(data).forEach(key => {
+        Object.keys(dataFromFirebase).forEach(key => {
           if (key !== "Timestamp") {
             const valueBox = document.createElement("div");
             valueBox.className = "value-box";
@@ -251,7 +305,7 @@
 
             const boxValue = document.createElement("div");
             boxValue.className = "value";
-            boxValue.textContent = data[key];
+            boxValue.textContent = dataFromFirebase[key];
             valueBox.appendChild(boxValue);
 
             // Add unit (example: voltage -> V, current -> A, power -> W)
@@ -273,8 +327,74 @@
             valueBox.appendChild(unit);
 
             valuesDisplay.appendChild(valueBox);
+
+            // Store data for graph
+            if (key === "PhaseVoltage") {
+              data.phaseVoltage.push(dataFromFirebase[key]);
+            } else if (key === "Current") {
+              data.current.push(dataFromFirebase[key]);
+            } else if (key === "Power") {
+              data.power.push(dataFromFirebase[key]);
+            }
+
+            data.timestamps.push(dataFromFirebase.Timestamp);
           }
         });
+
+        updateGraph();
+      });
+    }
+
+    // Function to update the graph based on data
+    function updateGraph() {
+      const ctx = document.getElementById('energyGraph').getContext('2d');
+      const graphData = {
+        labels: data.timestamps,
+        datasets: []
+      };
+
+      // Add average phase voltage
+      graphData.datasets.push({
+        label: 'Average Phase Voltage (V)',
+        data: data.phaseVoltage,
+        borderColor: 'rgba(255, 99, 132, 1)',
+        backgroundColor: 'rgba(255, 99, 132, 0.2)',
+        fill: true
+      });
+
+      // Add average current
+      graphData.datasets.push({
+        label: 'Average Current (A)',
+        data: data.current,
+        borderColor: 'rgba(54, 162, 235, 1)',
+        backgroundColor: 'rgba(54, 162, 235, 0.2)',
+        fill: true
+      });
+
+      // Add total power
+      graphData.datasets.push({
+        label: 'Total Power (W)',
+        data: data.power,
+        borderColor: 'rgba(75, 192, 192, 1)',
+        backgroundColor: 'rgba(75, 192, 192, 0.2)',
+        fill: true
+      });
+
+      new Chart(ctx, {
+        type: 'line',
+        data: graphData,
+        options: {
+          responsive: true,
+          plugins: {
+            legend: {
+              position: 'top',
+            },
+            tooltip: {
+              mode: 'index',
+              intersect: false,
+            }
+          }
+        }
       });
     }
 
@@ -283,6 +403,17 @@
       const sidebar = document.getElementById("meterList");
       sidebar.classList.toggle("open");
     }
+
+    // Graph selection/deselection
+    document.getElementById("togglePhaseVoltage").onclick = () => {
+      data.phaseVoltage.length ? data.phaseVoltage = [] : updateGraph();
+    };
+    document.getElementById("toggleCurrent").onclick = () => {
+      data.current.length ? data.current = [] : updateGraph();
+    };
+    document.getElementById("togglePower").onclick = () => {
+      data.power.length ? data.power = [] : updateGraph();
+    };
 
   </script>
 </body>
