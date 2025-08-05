@@ -103,7 +103,7 @@
 
   <!-- Display Values -->
   <div class="box-container" id="valuesDisplay">
-    <!-- Value boxes will be added here dynamically -->
+    <!-- Value boxes will be added here dynamically based on meter selection -->
   </div>
 
   <script>
@@ -119,6 +119,8 @@
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
 
+    let currentMeter = null;  // Store the selected meter
+
     // Create tabs based on available meters
     db.ref().once("value").then(snapshot => {
       const data = snapshot.val();
@@ -133,18 +135,19 @@
       Object.keys(data).forEach(path => {
         const tabButton = document.createElement("button");
         tabButton.innerText = path;
-        tabButton.onclick = () => fetchMeterData(path);
+        tabButton.onclick = () => selectMeter(path);  // Change to select the clicked meter
         meterTabs.appendChild(tabButton);
       });
     });
 
     // Function to fetch and display data for selected meter
-    function fetchMeterData(path) {
+    function selectMeter(path) {
+      currentMeter = path;  // Update the selected meter
       const valuesDisplay = document.getElementById("valuesDisplay");
       valuesDisplay.innerHTML = ""; // Clear previous data
 
       const meterRef = db.ref(path);
-      meterRef.on("value", (snapshot) => {
+      meterRef.once("value", (snapshot) => {
         const data = snapshot.val();
 
         if (!data || Object.keys(data).length === 0) {
@@ -152,7 +155,7 @@
           return;
         }
 
-        // Create boxes for each value
+        // Create boxes for each value of the selected meter
         Object.keys(data).forEach(key => {
           if (key !== "Timestamp") {
             const valueBox = document.createElement("div");
