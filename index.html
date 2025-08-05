@@ -128,12 +128,6 @@
       color: #ecf0f1;
     }
 
-    .timestamp {
-      color: #bdc3c7;
-      font-size: 14px;
-      margin-top: 10px;
-    }
-
     /* Loading */
     .loading {
       color: #f39c12;
@@ -353,32 +347,38 @@
         datasets: []
       };
 
-      // Add average phase voltage
-      graphData.datasets.push({
-        label: 'Average Phase Voltage (V)',
-        data: data.phaseVoltage,
-        borderColor: 'rgba(255, 99, 132, 1)',
-        backgroundColor: 'rgba(255, 99, 132, 0.2)',
-        fill: true
-      });
+      // Add average phase voltage if data exists
+      if (data.phaseVoltage.length > 0) {
+        graphData.datasets.push({
+          label: 'Average Phase Voltage (V)',
+          data: data.phaseVoltage,
+          borderColor: 'rgba(255, 99, 132, 1)',
+          backgroundColor: 'rgba(255, 99, 132, 0.2)',
+          fill: true
+        });
+      }
 
-      // Add average current
-      graphData.datasets.push({
-        label: 'Average Current (A)',
-        data: data.current,
-        borderColor: 'rgba(54, 162, 235, 1)',
-        backgroundColor: 'rgba(54, 162, 235, 0.2)',
-        fill: true
-      });
+      // Add average current if data exists
+      if (data.current.length > 0) {
+        graphData.datasets.push({
+          label: 'Average Current (A)',
+          data: data.current,
+          borderColor: 'rgba(54, 162, 235, 1)',
+          backgroundColor: 'rgba(54, 162, 235, 0.2)',
+          fill: true
+        });
+      }
 
-      // Add total power
-      graphData.datasets.push({
-        label: 'Total Power (W)',
-        data: data.power,
-        borderColor: 'rgba(75, 192, 192, 1)',
-        backgroundColor: 'rgba(75, 192, 192, 0.2)',
-        fill: true
-      });
+      // Add total power if data exists
+      if (data.power.length > 0) {
+        graphData.datasets.push({
+          label: 'Total Power (W)',
+          data: data.power,
+          borderColor: 'rgba(75, 192, 192, 1)',
+          backgroundColor: 'rgba(75, 192, 192, 0.2)',
+          fill: true
+        });
+      }
 
       new Chart(ctx, {
         type: 'line',
