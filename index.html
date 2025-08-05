@@ -30,10 +30,19 @@
       text-align: center;
       color: #ecf0f1;
       font-size: 30px;
+      position: relative;
     }
 
-    h1 {
+    header h1 {
       font-size: 36px;
+    }
+
+    .updated-time {
+      position: absolute;
+      top: 10px;
+      right: 20px;
+      color: #bdc3c7;
+      font-size: 14px;
     }
 
     /* Sidebar Styles */
@@ -92,7 +101,7 @@
       border: 2px solid #ecf0f1;
       border-radius: 8px;
       padding: 20px;
-      width: 180px;
+      width: 220px;
       text-align: center;
       box-shadow: 0 0 20px #ecf0f188;
       transition: transform 0.3s ease;
@@ -109,18 +118,12 @@
 
     .value-box .value {
       color: #f39c12;
-      font-size: 24px;
+      font-size: 28px;
     }
 
     .value-box .unit {
-      font-size: 14px;
+      font-size: 16px;
       color: #ecf0f1;
-    }
-
-    .timestamp {
-      color: #bdc3c7;
-      font-size: 14px;
-      margin-top: 10px;
     }
 
     /* Loading */
@@ -149,6 +152,7 @@
   <!-- Header -->
   <header>
     <h1>Energy Monitoring Dashboard</h1>
+    <div class="updated-time" id="updatedTime">Last Updated: Loading...</div>
   </header>
 
   <!-- Sidebar for Meter Selection -->
@@ -219,6 +223,10 @@
           return;
         }
 
+        // Update the "Last Updated" timestamp
+        const updatedTime = document.getElementById("updatedTime");
+        updatedTime.textContent = `Last Updated: ${convertTimestamp(data.Timestamp)}`;
+
         // Clear previous content to avoid stacking old data
         valuesDisplay.innerHTML = "";
 
@@ -237,33 +245,25 @@
             boxValue.textContent = data[key];
             valueBox.appendChild(boxValue);
 
-            // Add unit (example: voltage -> V, current -> C)
+            // Add unit (example: voltage -> V, current -> A, power -> W)
             const unit = document.createElement("div");
             unit.className = "unit";
             if (key.toLowerCase().includes("voltage")) {
               unit.textContent = "(V)";
             } else if (key.toLowerCase().includes("current")) {
-              unit.textContent = "(C)";
+              unit.textContent = "(A)";
+            } else if (key.toLowerCase().includes("power")) {
+              unit.textContent = "(W)";
+            } else if (key.toLowerCase().includes("frequency")) {
+              unit.textContent = "(Hz)";
+            } else if (key.toLowerCase().includes("kwh")) {
+              unit.textContent = "(kWh)";
             }
             valueBox.appendChild(unit);
 
             valuesDisplay.appendChild(valueBox);
           }
         });
-
-        // Convert and display timestamp
-        const timestampBox = document.createElement("div");
-        timestampBox.className = "value-box";
-        const timestampTitle = document.createElement("h4");
-        timestampTitle.textContent = "Timestamp";
-        timestampBox.appendChild(timestampTitle);
-
-        const timestampValue = document.createElement("div");
-        timestampValue.className = "value timestamp";
-        timestampValue.textContent = convertTimestamp(data.Timestamp);
-        timestampBox.appendChild(timestampValue);
-
-        valuesDisplay.appendChild(timestampBox);
       });
     }
 
