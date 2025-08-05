@@ -18,193 +18,95 @@
       background: linear-gradient(#000000, #1a1a1a);
       color: #00ffcc;
       display: flex;
-      flex-direction: row;
+      flex-direction: column;
+      align-items: center;
     }
 
-    .toggle-sidebar {
-      display: none;
-      background: #00ffcc22;
-      border: none;
-      color: #00f7ff;
-      font-weight: bold;
-      padding: 10px;
+    header {
+      background-color: #00ffcc;
       width: 100%;
-      cursor: pointer;
-      text-align: left;
-    }
-
-    .sidebar {
-      width: 250px;
-      background: #111;
       padding: 20px;
-      border-right: 2px solid #00ffcc;
-      height: 100vh;
-      overflow-y: auto;
-    }
-
-    .sidebar h2 {
-      color: #00f7ff;
-      font-size: 18px;
-      margin-bottom: 10px;
-    }
-
-    .sidebar label {
-      display: block;
-      margin: 5px 0;
-      cursor: pointer;
-    }
-
-    .sidebar button {
-      margin-bottom: 10px;
-      width: 100%;
-      padding: 6px;
-      background: #00ffcc22;
-      border: 1px solid #00ffcc;
-      color: #00f7ff;
-      font-weight: bold;
-      cursor: pointer;
-      border-radius: 6px;
-    }
-
-    .content {
-      flex-grow: 1;
-      padding: 20px;
+      text-align: center;
     }
 
     h1 {
-      text-align: center;
-      color: #00f7ff;
-      margin-top: 0;
+      font-size: 36px;
+      color: #111;
     }
 
-    .grid {
+    /* Tab styles */
+    .tab-menu {
+      display: flex;
+      justify-content: center;
+      margin-top: 20px;
+    }
+
+    .tab-menu button {
+      background-color: #111;
+      color: #00ffcc;
+      padding: 10px 20px;
+      border: 2px solid #00ffcc;
+      border-radius: 5px;
+      cursor: pointer;
+      transition: background-color 0.3s;
+      margin-right: 10px;
+    }
+
+    .tab-menu button:hover {
+      background-color: #00ffcc;
+      color: #111;
+    }
+
+    .box-container {
       display: flex;
       flex-wrap: wrap;
-      gap: 20px;
       justify-content: center;
+      gap: 20px;
+      margin-top: 30px;
     }
 
-    .card {
-      background: #111;
+    .value-box {
+      background-color: #111;
       border: 2px solid #00ffcc;
-      border-radius: 12px;
+      border-radius: 8px;
       padding: 20px;
-      width: 320px;
+      width: 180px;
+      text-align: center;
       box-shadow: 0 0 20px #00ffcc88;
-      transition: 0.3s;
     }
 
-    .card:hover {
-      transform: scale(1.03);
-      box-shadow: 0 0 25px #00ffe6;
-    }
-
-    .card h3 {
+    .value-box h4 {
       color: #00ff00;
     }
 
-    .gauge {
-      font-size: 20px;
-      margin: 5px 0;
-    }
-
-    .gauge strong {
+    .value-box .value {
       color: yellow;
+      font-size: 24px;
     }
 
-    .timestamp {
-      font-size: 12px;
-      color: #ccc;
-      margin-top: 10px;
-    }
-
+    /* Loading */
     .loading {
       color: yellow;
-    }
-
-    .hidden {
-      display: none;
-    }
-
-    @media (max-width: 768px) {
-      body {
-        flex-direction: column;
-      }
-
-      .sidebar {
-        width: 100%;
-        height: auto;
-        display: none;
-        border-right: none;
-        border-bottom: 2px solid #00ffcc;
-      }
-
-      .sidebar.open {
-        display: block;
-      }
-
-      .toggle-sidebar {
-        display: block;
-      }
-
-      .grid {
-        flex-direction: column;
-        align-items: center;
-      }
-
-      .card {
-        width: 100%;
-        max-width: 90%;
-      }
-
-      .content {
-        padding: 10px;
-      }
     }
   </style>
 </head>
 <body>
-  <button class="toggle-sidebar" onclick="toggleSidebar()">☰ Menu</button>
-
-  <!-- Sidebar -->
-  <div class="sidebar">
-    <h2>Select Meters</h2>
-    <button onclick="toggleAll(true)">Select All</button>
-    <button onclick="toggleAll(false)">Deselect All</button>
-    <form id="pathSelector"></form>
-  </div>
-
-  <!-- Main Content -->
-  <div class="content hidden" id="mainContent">
-    <h1>Live Smart Energy Dashboard</h1>
-    <div id="dashboard" class="grid"></div>
-  </div>
-
-  <header class="bg-green-700 text-white p-4 flex justify-between items-center">
-    <h1 class="text-2xl font-bold">Smart Energy Dashboard</h1>
-    <span id="timestamp" class="text-sm font-semibold"></span>
+  <!-- Header -->
+  <header>
+    <h1>Energy Monitoring Dashboard</h1>
   </header>
 
-  <main class="p-4">
-    <section id="cards" class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8"></section>
+  <!-- Tab Menu for Meter Selection -->
+  <div class="tab-menu" id="meterTabs">
+    <!-- Buttons will be added here dynamically -->
+  </div>
 
-    <section class="bg-white p-4 rounded shadow mb-8">
-      <h3 class="text-lg font-semibold mb-2">Voltage & Current Trends</h3>
-      <canvas id="combinedChart"></canvas>
-    </section>
-  </main>
+  <!-- Display Values -->
+  <div class="box-container" id="valuesDisplay">
+    <!-- Value boxes will be added here dynamically -->
+  </div>
 
   <script>
-    const PASSWORD = "admin123";
-    const inputPassword = prompt("Enter password to view the dashboard:");
-    if (inputPassword !== PASSWORD) {
-      document.body.innerHTML = "<h2 style='color:red; text-align:center;'>Access Denied</h2>";
-      throw new Error("Access denied.");
-    } else {
-      document.getElementById("mainContent").classList.remove("hidden");
-    }
-
-    // Firebase Config
     const firebaseConfig = {
       apiKey: "AIzaSyDX7V2tnn17aWwTSvmJQRCNwUdRsbKuHRI",
       authDomain: "esp-983b0.firebaseapp.com",
@@ -214,115 +116,62 @@
       messagingSenderId: "1007002311762",
       appId: "1:1007002311762:web:dfbd5ae1a3e8e4bb914535"
     };
-
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
-    const dashboard = document.getElementById("dashboard");
-    const form = document.getElementById("pathSelector");
-    const listeners = {};
 
-    // Function to toggle the sidebar visibility
-    function toggleSidebar() {
-      const sidebar = document.querySelector(".sidebar");
-      sidebar.classList.toggle("open");
-    }
-
-    // Function to select or deselect all checkboxes
-    function toggleAll(select) {
-      const checkboxes = document.querySelectorAll("#pathSelector input[type=checkbox]");
-      checkboxes.forEach(cb => {
-        if (cb.checked !== select) cb.click();
-      });
-    }
-
-    // Function to create a card for each meter
-    function createCard(title, data = {}, fallbackTimestamp = null) {
-      let html = `<div class="card"><h3>${title}</h3>`;
-
-      if (!data || Object.keys(data).length === 0) {
-        html += `<p class="loading">Loading...</p>`;
-      } else {
-        for (let key in data) {
-          if (key !== "Timestamp") {
-            html += `<div class="gauge">${key}: <strong>${data[key]}</strong></div>`;
-          }
-        }
-      }
-
-      let ts = data?.Timestamp || fallbackTimestamp || Date.now();
-      if (typeof ts === "string") ts = parseInt(ts);
-      if (ts < 10000000000) ts *= 1000;
-
-      const timeStr = new Date(ts).toLocaleString();
-      html += `<div class="timestamp">⏱ ${timeStr}</div>`;
-
-      html += `</div>`;
-      return html;
-    }
-
-    // Function to update a card with new data
-    function updateCard(path, data) {
-      const timestamp = data?.Timestamp || Date.now();
-      const cardEl = document.querySelector(`[data-path="${path}"]`);
-      if (cardEl) {
-        cardEl.innerHTML = createCard(path, data, timestamp);
-      }
-    }
-
-    // Function to initialize a card for each meter
-    function initCard(path) {
-      let wrapper = document.querySelector(`[data-path="${path}"]`);
-      if (!wrapper) {
-        wrapper = document.createElement("div");
-        wrapper.classList.add("card");
-        wrapper.setAttribute("data-path", path);
-        wrapper.innerHTML = createCard(path);
-        dashboard.appendChild(wrapper);
-      }
-    }
-
-    // Function to remove a card for a selected meter
-    function removeCard(path) {
-      const wrapper = document.querySelector(`[data-path="${path}"]`);
-      if (wrapper) wrapper.remove();
-      if (listeners[path]) {
-        db.ref(path).off("value", listeners[path]);
-        delete listeners[path];
-      }
-    }
-
-    // Function to handle the selection of meters
+    // Create tabs based on available meters
     db.ref().once("value").then(snapshot => {
       const data = snapshot.val();
+      const meterTabs = document.getElementById("meterTabs");
+      const valuesDisplay = document.getElementById("valuesDisplay");
+
       if (!data) {
-        form.innerHTML = "<p style='color:red;'>No data paths found.</p>";
+        meterTabs.innerHTML = "<p style='color:red;'>No data paths found.</p>";
         return;
       }
 
       Object.keys(data).forEach(path => {
-        const label = document.createElement("label");
-        const checkbox = document.createElement("input");
-        checkbox.type = "checkbox";
-        checkbox.value = path;
-
-        checkbox.addEventListener("change", (e) => {
-          if (e.target.checked) {
-            initCard(path);
-            const ref = db.ref(path);
-            listeners[path] = ref.on("value", snap => {
-              const value = snap.val();
-              updateCard(path, value);
-            });
-          } else {
-            removeCard(path);
-          }
-        });
-
-        label.appendChild(checkbox);
-        label.append(" " + path);
-        form.appendChild(label);
+        const tabButton = document.createElement("button");
+        tabButton.innerText = path;
+        tabButton.onclick = () => fetchMeterData(path);
+        meterTabs.appendChild(tabButton);
       });
     });
+
+    // Function to fetch and display data for selected meter
+    function fetchMeterData(path) {
+      const valuesDisplay = document.getElementById("valuesDisplay");
+      valuesDisplay.innerHTML = ""; // Clear previous data
+
+      const meterRef = db.ref(path);
+      meterRef.on("value", (snapshot) => {
+        const data = snapshot.val();
+
+        if (!data || Object.keys(data).length === 0) {
+          valuesDisplay.innerHTML = `<div class="loading">Loading...</div>`;
+          return;
+        }
+
+        // Create boxes for each value
+        Object.keys(data).forEach(key => {
+          if (key !== "Timestamp") {
+            const valueBox = document.createElement("div");
+            valueBox.className = "value-box";
+
+            const boxTitle = document.createElement("h4");
+            boxTitle.textContent = key;
+            valueBox.appendChild(boxTitle);
+
+            const boxValue = document.createElement("div");
+            boxValue.className = "value";
+            boxValue.textContent = data[key];
+            valueBox.appendChild(boxValue);
+
+            valuesDisplay.appendChild(valueBox);
+          }
+        });
+      });
+    }
   </script>
 </body>
 </html>
