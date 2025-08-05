@@ -105,6 +105,7 @@
       text-align: center;
       box-shadow: 0 0 20px #ecf0f188;
       transition: transform 0.3s ease;
+      word-wrap: break-word; /* Ensure text wraps within the box */
     }
 
     .value-box:hover {
@@ -114,16 +115,24 @@
 
     .value-box h4 {
       color: #2ecc71;
+      word-wrap: break-word;
     }
 
     .value-box .value {
       color: #f39c12;
       font-size: 28px;
+      word-wrap: break-word;
     }
 
     .value-box .unit {
       font-size: 16px;
       color: #ecf0f1;
+    }
+
+    .timestamp {
+      color: #bdc3c7;
+      font-size: 14px;
+      margin-top: 10px;
     }
 
     /* Loading */
@@ -258,6 +267,8 @@
               unit.textContent = "(Hz)";
             } else if (key.toLowerCase().includes("kwh")) {
               unit.textContent = "(kWh)";
+            } else if (key.toLowerCase().includes("power factor")) {
+              unit.textContent = "";  // No unit for power factor
             }
             valueBox.appendChild(unit);
 
