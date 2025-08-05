@@ -1,16 +1,16 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <title>Live Smart Energy Dashboard</title>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-
-  <!-- Firebase SDK -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Smart Energy Dashboard</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://unpkg.com/feather-icons"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
 
-  <!-- Google Fonts + CSS -->
-  <link href="https://fonts.googleapis.com/css2?family=Orbitron&display=swap" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+  
   <style>
     body {
       margin: 0;
@@ -180,6 +180,20 @@
     <div id="dashboard" class="grid"></div>
   </div>
 
+  <header class="bg-green-700 text-white p-4 flex justify-between items-center">
+    <h1 class="text-2xl font-bold">Smart Energy Dashboard</h1>
+    <span id="timestamp" class="text-sm font-semibold"></span>
+  </header>
+
+  <main class="p-4">
+    <section id="cards" class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8"></section>
+
+    <section class="bg-white p-4 rounded shadow mb-8">
+      <h3 class="text-lg font-semibold mb-2">Voltage & Current Trends</h3>
+      <canvas id="combinedChart"></canvas>
+    </section>
+  </main>
+
   <script>
     const PASSWORD = "admin123";
     const inputPassword = prompt("Enter password to view the dashboard:");
@@ -210,6 +224,13 @@
     function toggleSidebar() {
       const sidebar = document.querySelector(".sidebar");
       sidebar.classList.toggle("open");
+    }
+
+    function toggleAll(select) {
+      const checkboxes = document.querySelectorAll("#pathSelector input[type=checkbox]");
+      checkboxes.forEach(cb => {
+        if (cb.checked !== select) cb.click();
+      });
     }
 
     function createCard(title, data = {}, fallbackTimestamp = null) {
@@ -269,13 +290,6 @@
       }
     }
 
-    function toggleAll(select) {
-      const checkboxes = document.querySelectorAll("#pathSelector input[type=checkbox]");
-      checkboxes.forEach(cb => {
-        if (cb.checked !== select) cb.click();
-      });
-    }
-
     db.ref().once("value").then(snapshot => {
       const data = snapshot.val();
       if (!data) {
@@ -307,7 +321,47 @@
         form.appendChild(label);
       });
     });
+
+    // Chart.js configuration for combined chart
+    const timeLabels = [];
+    const combinedChartCtx = document.getElementById('combinedChart').getContext('2d');
+    const combinedChart = new Chart(combinedChartCtx, {
+      type: 'line',
+      data: {
+        labels: timeLabels,
+        datasets: [
+          {
+            label: 'AVERAGE_PHASE_VOLTAGE',
+            data: [],
+            borderColor: 'rgba(255, 99, 132, 1)',
+            fill: false,
+            tension: 0.1
+          },
+          {
+            label: 'TOTAL_POWER',
+            data: [],
+            borderColor: 'rgba(54, 162, 235, 1)',
+            fill: false,
+            tension: 0.1
+          },
+          {
+            label: 'Average_current',
+            data: [],
+            borderColor: 'rgba(75, 192, 192, 1)',
+            fill: false,
+            tension: 0.1
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        scales: {
+          x: { title: { display: true, text: 'Time' } },
+          y: { title: { display: true, text: 'Values' } }
+        }
+      }
+    });
+
   </script>
 </body>
-
 </html>
