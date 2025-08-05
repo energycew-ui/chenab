@@ -323,11 +323,11 @@
             valuesDisplay.appendChild(valueBox);
 
             // Store data for graph
-            if (key === "PhaseVoltage") {
+            if (key === "AVERAGE_PHASE_VOLTAGE") {
               data.phaseVoltage.push(dataFromFirebase[key]);
-            } else if (key === "Current") {
+            } else if (key === "Average_current") {
               data.current.push(dataFromFirebase[key]);
-            } else if (key === "Power") {
+            } else if (key === "TOTAL_POWER") {
               data.power.push(dataFromFirebase[key]);
             }
 
