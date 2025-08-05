@@ -345,7 +345,7 @@
     function updateGraph() {
       const ctx = document.getElementById('energyGraph').getContext('2d');
       const graphData = {
-        labels: data.timestamps,
+        labels: data.timestamps.map(timestamp => convertTimestamp(timestamp)), // Convert time to human-readable
         datasets: []
       };
 
