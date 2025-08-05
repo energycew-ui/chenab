@@ -15,12 +15,13 @@
     body {
       margin: 0;
       font-family: 'Orbitron', sans-serif;
-      background: linear-gradient(#111, #333);
+      background: linear-gradient(145deg, #111, #333);
       color: #00ffcc;
       display: flex;
       flex-direction: column;
       align-items: center;
       height: 100vh;
+      overflow: hidden;
     }
 
     header {
@@ -35,21 +36,20 @@
       font-size: 36px;
     }
 
-    /* Sidebar styles */
+    /* Sidebar Styles */
     .meter-list {
       width: 250px;
       background-color: #111;
       color: #00ffcc;
-      padding: 10px;
+      padding: 20px;
       position: fixed;
       top: 80px;
-      left: 0;
+      left: -250px;
       transition: left 0.3s ease-in-out;
       border-right: 2px solid #00ffcc;
       z-index: 10;
       height: calc(100vh - 80px);
-      display: flex;
-      flex-direction: column;
+      overflow-y: auto;
     }
 
     .meter-list.open {
@@ -73,14 +73,17 @@
       color: #111;
     }
 
-    /* Value Box */
+    /* Content Area */
     .box-container {
       display: flex;
       flex-wrap: wrap;
       justify-content: center;
       gap: 20px;
       margin-top: 30px;
+      padding: 10px;
       width: 90%;
+      overflow-y: auto;
+      height: calc(100vh - 160px); /* To avoid vertical scrolling of content */
     }
 
     .value-box {
@@ -91,6 +94,12 @@
       width: 180px;
       text-align: center;
       box-shadow: 0 0 20px #00ffcc88;
+      transition: transform 0.3s ease;
+    }
+
+    .value-box:hover {
+      transform: scale(1.05);
+      box-shadow: 0 0 25px #00ffe6;
     }
 
     .value-box h4 {
@@ -107,9 +116,16 @@
       color: #00ffcc;
     }
 
+    .timestamp {
+      color: #ccc;
+      font-size: 14px;
+      margin-top: 10px;
+    }
+
     /* Loading */
     .loading {
       color: yellow;
+      font-size: 20px;
     }
 
     /* Button to toggle the sidebar */
@@ -239,7 +255,7 @@
         timestampBox.appendChild(timestampTitle);
 
         const timestampValue = document.createElement("div");
-        timestampValue.className = "value";
+        timestampValue.className = "value timestamp";
         timestampValue.textContent = convertTimestamp(data.Timestamp);
         timestampBox.appendChild(timestampValue);
 
