@@ -28,14 +28,14 @@
       width: 100%;
       padding: 20px;
       text-align: center;
+      color: #111;
     }
 
     h1 {
       font-size: 36px;
-      color: #111;
     }
 
-    /* Sidebar */
+    /* Sidebar styles */
     .meter-list {
       width: 250px;
       background-color: #111;
@@ -43,11 +43,13 @@
       padding: 10px;
       position: fixed;
       top: 80px;
-      left: -250px;
+      left: 0;
       transition: left 0.3s ease-in-out;
       border-right: 2px solid #00ffcc;
       z-index: 10;
       height: calc(100vh - 80px);
+      display: flex;
+      flex-direction: column;
     }
 
     .meter-list.open {
@@ -134,7 +136,7 @@
 
   <!-- Sidebar for Meter Selection -->
   <div class="meter-list" id="meterList">
-    <!-- Meter buttons will be added dynamically -->
+    <!-- Meter buttons will be added here dynamically -->
   </div>
 
   <!-- Display Values -->
