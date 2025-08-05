@@ -192,10 +192,10 @@
 
     // Firebase Config
     const firebaseConfig = {
-      apiKey: "dq08PQL2JHCpD13e9295WjatZXFnQOZLCH7Ez4aO",
-      authDomain: "esp-983b0.firebaseapp.com",
-      databaseURL: "https://esp-983b0-default-rtdb.firebaseio.com/",
-      projectId: "esp-983b0",
+      apiKey: "HUnLryCEcWQ1OKZZldHP6xBzMBigoQ87lpDYdhgU",
+      authDomain: "energy-monitoring-chenab-60e72-default-rtdb.firebaseio.com",
+      databaseURL: "https://energy-monitoring-chenab-60e72-default-rtdb.firebaseio.com/",
+      projectId: "energy-monitoring-chenab-60e72",
       storageBucket: "esp-983b0.appspot.com",
       messagingSenderId: "YOUR_ID",
       appId: "YOUR_ID"
@@ -309,4 +309,5 @@
     });
   </script>
 </body>
+
 </html>
