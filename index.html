@@ -47,8 +47,8 @@
     const dbRef = ref(database, path);
 
     const fields = [
-      "VOLTAGE_AB","VOLTAGE_BC","VOLTAGE_CA","AVERAGE_PHASE_VOLTAGE","L1_Voltage", "L2_Voltage", "L3_Voltage", "AVERAGE_VOLTAGE","current_phase_1", "current_phase_2", "current_phase_3", "Average_current",  
-      "POWER_PHASE_A", "POWER_PHASE_B", "POWER_PHASE_C", "TOTAL_POWER","FREQUENCY", "PowerFactorTotal", "TotalKWh","Timestamp"
+      "VOLTAGE_AB", "VOLTAGE_BC", "VOLTAGE_CA", "AVERAGE_PHASE_VOLTAGE", "L1_Voltage", "L2_Voltage", "L3_Voltage", "AVERAGE_VOLTAGE", "current_phase_1", "current_phase_2", "current_phase_3", "Average_current",  
+      "POWER_PHASE_A", "POWER_PHASE_B", "POWER_PHASE_C", "TOTAL_POWER", "FREQUENCY", "PowerFactorTotal", "TotalKWh", "Timestamp"
     ];
 
     const icons = {
@@ -141,12 +141,12 @@
     // Fetch all meters dynamically from Firebase and populate the menu
     function fetchAllMeters() {
       onValue(dbRef, (snapshot) => {
-        const meters = snapshot.val(); // Getting all meter data
+        const data = snapshot.val(); // Getting all meter data
         const menu = document.getElementById('menu');
         menu.innerHTML = ''; // Clear any previous menu items
 
         // Dynamically add meters to the menu
-        for (let meter in meters) {
+        for (let meter in data) {
           const menuItem = document.createElement('li');
           menuItem.className = 'menu-item';
           menuItem.textContent = meter; // meter name like 'home1', 'home2', etc.
@@ -207,7 +207,7 @@
       });
     }
 
-    // Toggle menu visibility
+    // Toggle menu visibility and fetch meters
     function toggleMenu() {
       const menu = document.getElementById('menu');
       menu.style.display = menu.style.display === 'block' ? 'none' : 'block';
