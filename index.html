@@ -17,6 +17,13 @@
     #menu {
       display: none;
     }
+    .menu-item {
+      cursor: pointer;
+      padding: 10px;
+      margin: 5px;
+      background-color: #f1f1f1;
+      border-radius: 5px;
+    }
   </style>
 
   <script type="module">
@@ -182,6 +189,13 @@
       const menu = document.getElementById('menu');
       menu.style.display = menu.style.display === 'block' ? 'none' : 'block';
     }
+
+    function displayMeterData(meter) {
+      const dataElement = document.getElementById(meter);
+      if (dataElement) {
+        dataElement.style.display = 'block';
+      }
+    }
   </script>
 </head>
 <body class="bg-gray-100 text-gray-800 relative">
@@ -194,15 +208,18 @@
   <!-- Menu Items -->
   <div id="menu" class="fixed top-16 left-4 bg-white shadow-md rounded-md p-4 z-50">
     <ul>
-      <li><a href="#">VOLTAGE_AB</a></li>
-      <li><a href="#">VOLTAGE_BC</a></li>
-      <li><a href="#">VOLTAGE_CA</a></li>
-      <!-- Add other fields here -->
+      <li class="menu-item" onclick="displayMeterData('VOLTAGE_AB')">VOLTAGE_AB</li>
+      <li class="menu-item" onclick="displayMeterData('VOLTAGE_BC')">VOLTAGE_BC</li>
+      <li class="menu-item" onclick="displayMeterData('VOLTAGE_CA')">VOLTAGE_CA</li>
+      <li class="menu-item" onclick="displayMeterData('AVERAGE_PHASE_VOLTAGE')">AVERAGE_PHASE_VOLTAGE</li>
+      <li class="menu-item" onclick="displayMeterData('L1_Voltage')">L1_Voltage</li>
+      <li class="menu-item" onclick="displayMeterData('L2_Voltage')">L2_Voltage</li>
+      <li class="menu-item" onclick="displayMeterData('L3_Voltage')">L3_Voltage</li>
     </ul>
   </div>
 
   <!-- Floating Live Timestamp -->
-  <div class="fixed bottom-4 right-4 bg-white text-sm text-gray-700 px-3 py-2 rounded shadow z-50">
+  <div class="fixed top-4 right-4 bg-white text-sm text-gray-700 px-3 py-2 rounded shadow z-50">
     <span id="timestamp">🕒 Last Updated: --</span>
   </div>
 
