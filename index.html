@@ -47,8 +47,8 @@
     const dbRef = ref(database, path);
 
     const fields = [
-      "VOLTAGE_AB","VOLTAGE_BC","VOLTAGE_CA","AVERAGE_PHASE_VOLTAGE","L1_Voltage", "L2_Voltage", "L3_Voltage", "AVERAGE_VOLTAGE","current_phase_1", "current_phase_2", "current_phase_3", "Average_current",  
-      "POWER_PHASE_A", "POWER_PHASE_B", "POWER_PHASE_C", "TOTAL_POWER","FREQUENCY", "PowerFactorTotal", "TotalKWh","Timestamp"
+      "VOLTAGE_AB", "VOLTAGE_BC", "VOLTAGE_CA", "AVERAGE_PHASE_VOLTAGE", "L1_Voltage", "L2_Voltage", "L3_Voltage", "AVERAGE_VOLTAGE", "current_phase_1", "current_phase_2", "current_phase_3", "Average_current",
+      "POWER_PHASE_A", "POWER_PHASE_B", "POWER_PHASE_C", "TOTAL_POWER", "FREQUENCY", "PowerFactorTotal", "TotalKWh", "Timestamp"
     ];
 
     const icons = {
@@ -138,63 +138,84 @@
       }
     });
 
+    // Fetch all meters and populate menu
     onValue(dbRef, (snapshot) => {
-      const data = snapshot.val();
-      const timestampRaw = data.Timestamp;
-      const timestamp = new Date((timestampRaw * 1000) - (5 * 60 * 60 * 1000)).toLocaleString();
-      timestampContainer.textContent = `🕒 Last Updated: ${timestamp}`;
+      const meters = snapshot.val();
+      const menu = document.getElementById('menu');
+      menu.innerHTML = ''; // Clear existing menu items
 
-      const timeNow = new Date().toLocaleTimeString();
-      timeLabels.push(timeNow);
-      if (timeLabels.length > 20) timeLabels.shift();
-
-      fields.forEach(field => {
-        const value = data[field];
-        if (!dataStore[field] && field !== "Timestamp") {
-          const bgColor = fieldColors[field] || "bg-white";
-          const icon = icons[field] || "box";
-          const card = document.createElement("div");
-          card.className = `card p-4 ${bgColor} rounded-2xl shadow-md text-center`;
-          card.innerHTML = `
-            <div class="flex items-center justify-center mb-2">
-              <i data-feather="${icon}" class="w-5 h-5 mr-2"></i>
-              <h2 class="text-sm font-bold text-gray-700">${field}</h2>
-            </div>
-            <p id="${field}" class="text-xl font-semibold text-gray-800">-</p>
-          `;
-          cardsContainer.appendChild(card);
-          dataStore[field] = [];
-        }
-
-        if (field !== "Timestamp") {
-          document.getElementById(field).textContent = value;
-
-          if (['AVERAGE_PHASE_VOLTAGE', 'TOTAL_POWER', 'Average_current'].includes(field)) {
-            const datasetIndex = combinedChart.data.datasets.findIndex(ds => ds.label === field);
-            if (datasetIndex !== -1) {
-              const chartData = combinedChart.data.datasets[datasetIndex].data;
-              chartData.push(value);
-              if (chartData.length > 50) chartData.shift();
-            }
-            combinedChart.data.labels = timeLabels;
-            combinedChart.update();
-          }
-        }
-      });
-
-      feather.replace(); // load icons
+      // Iterate through all meters and display their names in the menu
+      for (let meterName in meters) {
+        const menuItem = document.createElement('li');
+        menuItem.className = 'menu-item';
+        menuItem.textContent = meterName;
+        menuItem.onclick = () => displayMeterData(meterName);
+        menu.appendChild(menuItem);
+      }
     });
 
+    // Function to fetch and display data for the selected meter
+    function fetchMeterData(meterName) {
+      const dbRef = ref(database, `Machine_shop_main/${meterName}`);
+      onValue(dbRef, (snapshot) => {
+        const data = snapshot.val();
+        const timestampRaw = data.Timestamp;
+        const timestamp = new Date((timestampRaw * 1000) - (5 * 60 * 60 * 1000)).toLocaleString();
+        timestampContainer.textContent = `🕒 Last Updated: ${timestamp}`;
+
+        const timeNow = new Date().toLocaleTimeString();
+        timeLabels.push(timeNow);
+        if (timeLabels.length > 20) timeLabels.shift();
+
+        fields.forEach(field => {
+          const value = data[field];
+          if (!dataStore[field] && field !== "Timestamp") {
+            const bgColor = fieldColors[field] || "bg-white";
+            const icon = icons[field] || "box";
+            const card = document.createElement("div");
+            card.className = `card p-4 ${bgColor} rounded-2xl shadow-md text-center`;
+            card.innerHTML = `
+              <div class="flex items-center justify-center mb-2">
+                <i data-feather="${icon}" class="w-5 h-5 mr-2"></i>
+                <h2 class="text-sm font-bold text-gray-700">${field}</h2>
+              </div>
+              <p id="${field}" class="text-xl font-semibold text-gray-800">-</p>
+            `;
+            cardsContainer.appendChild(card);
+            dataStore[field] = [];
+          }
+
+          if (field !== "Timestamp") {
+            document.getElementById(field).textContent = value;
+
+            if (['AVERAGE_PHASE_VOLTAGE', 'TOTAL_POWER', 'Average_current'].includes(field)) {
+              const datasetIndex = combinedChart.data.datasets.findIndex(ds => ds.label === field);
+              if (datasetIndex !== -1) {
+                const chartData = combinedChart.data.datasets[datasetIndex].data;
+                chartData.push(value);
+                if (chartData.length > 50) chartData.shift();
+              }
+              combinedChart.data.labels = timeLabels;
+              combinedChart.update();
+            }
+          }
+        });
+
+        feather.replace(); // load icons
+      });
+    }
+
+    // Toggle menu visibility
     function toggleMenu() {
       const menu = document.getElementById('menu');
       menu.style.display = menu.style.display === 'block' ? 'none' : 'block';
     }
 
+    // Show meter data when clicked on the menu
     function displayMeterData(meter) {
-      const dataElement = document.getElementById(meter);
-      if (dataElement) {
-        dataElement.style.display = 'block';
-      }
+      // Clear any existing data before fetching new meter data
+      cardsContainer.innerHTML = '';
+      fetchMeterData(meter);
     }
   </script>
 </head>
@@ -207,15 +228,7 @@
 
   <!-- Menu Items -->
   <div id="menu" class="fixed top-16 left-4 bg-white shadow-md rounded-md p-4 z-50">
-    <ul>
-      <li class="menu-item" onclick="displayMeterData('VOLTAGE_AB')">VOLTAGE_AB</li>
-      <li class="menu-item" onclick="displayMeterData('VOLTAGE_BC')">VOLTAGE_BC</li>
-      <li class="menu-item" onclick="displayMeterData('VOLTAGE_CA')">VOLTAGE_CA</li>
-      <li class="menu-item" onclick="displayMeterData('AVERAGE_PHASE_VOLTAGE')">AVERAGE_PHASE_VOLTAGE</li>
-      <li class="menu-item" onclick="displayMeterData('L1_Voltage')">L1_Voltage</li>
-      <li class="menu-item" onclick="displayMeterData('L2_Voltage')">L2_Voltage</li>
-      <li class="menu-item" onclick="displayMeterData('L3_Voltage')">L3_Voltage</li>
-    </ul>
+    <!-- Meter names will be populated dynamically here -->
   </div>
 
   <!-- Floating Live Timestamp -->
