@@ -195,10 +195,12 @@
       const timeLabels = [];
       const voltageData = [];
       const currentData = [];
+      const powerData = [];
 
-      // Assuming fields like TOTAL_POWER, Average_current, AVERAGE_PHASE_VOLTAGE are chart data fields
-      if (data["TOTAL_POWER"]) voltageData.push(data["TOTAL_POWER"]);
+      // Push relevant data for chart visualization
+      if (data["AVERAGE_VOLTAGE"]) voltageData.push(data["AVERAGE_VOLTAGE"]);
       if (data["Average_current"]) currentData.push(data["Average_current"]);
+      if (data["TOTAL_POWER"]) powerData.push(data["TOTAL_POWER"]);
 
       const combinedChartCtx = document.getElementById('combinedChart').getContext('2d');
       const combinedChart = new Chart(combinedChartCtx, {
@@ -207,18 +209,25 @@
           labels: timeLabels,
           datasets: [
             {
-              label: 'TOTAL_POWER',
+              label: 'Average Voltage',
               data: voltageData,
               borderColor: 'rgba(255, 99, 132, 1)',
               fill: false,
               tension: 0.99
             },
             {
-              label: 'Average_current',
+              label: 'Average Current',
               data: currentData,
               borderColor: 'rgba(75, 192, 192, 1)',
               fill: false,
               tension: 0.75
+            },
+            {
+              label: 'Total Power',
+              data: powerData,
+              borderColor: 'rgba(54, 162, 235, 1)',
+              fill: false,
+              tension: 0.5
             }
           ]
         },
@@ -236,6 +245,7 @@
     pathSelector.addEventListener("change", () => {
       const newPath = pathSelector.value;
       loadData(newPath);
+      document.getElementById("subheading").textContent = newPath; // Update the subheading dynamically
     });
 
     // Clock Update
@@ -261,8 +271,9 @@
       <label for="pathSelector" class="font-semibold">Select Path:</label>
       <select id="pathSelector" class="text-black p-1 rounded"></select>
     </div>
-    <h1 class="text-xl font-bold text-center flex-1">Smart Energy Dashboard</h1>
-    <div id="clock" class="text-sm font-semibold"></div>
+    <h1 class="text-2xl font-bold text-center flex-1">Energy Monitoring</h1>
+    <!-- Dynamically updated subheading -->
+    <h2 id="subheading" class="text-lg font-semibold text-gray-200">Machine Shop</h2>
   </header>
 
   <!-- Main Content -->
@@ -272,7 +283,7 @@
 
     <!-- Chart Section -->
     <section class="chart-container">
-      <h3 class="text-lg font-semibold mb-2">Voltage & Current Trends</h3>
+      <h3 class="text-lg font-semibold mb-2">Voltage, Current, and Power Trend</h3>
       <canvas id="combinedChart"></canvas>
     </section>
   </main>
