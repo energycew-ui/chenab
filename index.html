@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Machine Shop Main Energy Dashboard</title>
+  <title>Energy Monitoring</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://unpkg.com/feather-icons"></script>
   <script src="https://cdn.tailwindcss.com"></script>
@@ -43,12 +43,11 @@
     const app = initializeApp(firebaseConfig);
     const database = getDatabase(app);
 
-    const path = "Machine_shop_main";
-    const dbRef = ref(database, path);
+    let selectedPath = "Machine_shop_main"; // Default path
 
     const fields = [
-      "VOLTAGE_AB","VOLTAGE_BC","VOLTAGE_CA","AVERAGE_PHASE_VOLTAGE","L1_Voltage", "L2_Voltage", "L3_Voltage", "AVERAGE_VOLTAGE","current_phase_1", "current_phase_2", "current_phase_3", "Average_current",  
-      "POWER_PHASE_A", "POWER_PHASE_B", "POWER_PHASE_C", "TOTAL_POWER","FREQUENCY", "PowerFactorTotal", "TotalKWh","Timestamp"
+      "VOLTAGE_AB", "VOLTAGE_BC", "VOLTAGE_CA", "AVERAGE_PHASE_VOLTAGE", "L1_Voltage", "L2_Voltage", "L3_Voltage", "AVERAGE_VOLTAGE", "current_phase_1", "current_phase_2", "current_phase_3", "Average_current",  
+      "POWER_PHASE_A", "POWER_PHASE_B", "POWER_PHASE_C", "TOTAL_POWER", "FREQUENCY", "PowerFactorTotal", "TotalKWh", "Timestamp"
     ];
 
     const icons = {
@@ -138,67 +137,90 @@
       }
     });
 
-    onValue(dbRef, (snapshot) => {
-      const data = snapshot.val();
-      const timestampRaw = data.Timestamp;
-      const timestamp = new Date((timestampRaw * 1000) - (5 * 60 * 60 * 1000)).toLocaleString();
-      timestampContainer.textContent = `🕒 Last Updated: ${timestamp}`;
+    // Fetch all Firebase paths dynamically
+    function fetchFirebasePaths() {
+      const menu = document.getElementById('menu');
+      menu.innerHTML = ''; // Clear any existing menu items
 
-      const timeNow = new Date().toLocaleTimeString();
-      timeLabels.push(timeNow);
-      if (timeLabels.length > 20) timeLabels.shift();
-
-      fields.forEach(field => {
-        const value = data[field];
-        if (!dataStore[field] && field !== "Timestamp") {
-          const bgColor = fieldColors[field] || "bg-white";
-          const icon = icons[field] || "box";
-          const card = document.createElement("div");
-          card.className = `card p-4 ${bgColor} rounded-2xl shadow-md text-center`;
-          card.innerHTML = `
-            <div class="flex items-center justify-center mb-2">
-              <i data-feather="${icon}" class="w-5 h-5 mr-2"></i>
-              <h2 class="text-sm font-bold text-gray-700">${field}</h2>
-            </div>
-            <p id="${field}" class="text-xl font-semibold text-gray-800">-</p>
-          `;
-          cardsContainer.appendChild(card);
-          dataStore[field] = [];
-        }
-
-        if (field !== "Timestamp") {
-          document.getElementById(field).textContent = value;
-
-          if (['AVERAGE_PHASE_VOLTAGE', 'TOTAL_POWER', 'Average_current'].includes(field)) {
-            const datasetIndex = combinedChart.data.datasets.findIndex(ds => ds.label === field);
-            if (datasetIndex !== -1) {
-              const chartData = combinedChart.data.datasets[datasetIndex].data;
-              chartData.push(value);
-              if (chartData.length > 50) chartData.shift();
-            }
-            combinedChart.data.labels = timeLabels;
-            combinedChart.update();
-          }
+      const rootRef = ref(database);
+      onValue(rootRef, (snapshot) => {
+        const paths = snapshot.val();
+        if (paths) {
+          // Dynamically create menu items based on Firebase paths
+          Object.keys(paths).forEach((path) => {
+            const menuItem = document.createElement('li');
+            menuItem.className = 'menu-item';
+            menuItem.textContent = path; // Path name
+            menuItem.onclick = () => {
+              selectPath(path); // Select the Firebase path
+            };
+            menu.appendChild(menuItem);
+          });
         }
       });
+    }
 
-      feather.replace(); // load icons
+    // Change path and fetch data dynamically
+    function selectPath(path) {
+      selectedPath = path; // Update selected path
+      document.getElementById("subheading").textContent = path; // Set subheading to path name
 
-      // Update the subheading based on Firebase data (e.g., "Machine Shop")
-      document.getElementById("subheading").textContent = "Machine Shop"; // You can update this dynamically based on the data path
-    });
+      const dbRef = ref(database, selectedPath);
+      onValue(dbRef, (snapshot) => {
+        const data = snapshot.val();
+        const timestampRaw = data.Timestamp;
+        const timestamp = new Date((timestampRaw * 1000) - (5 * 60 * 60 * 1000)).toLocaleString();
+        timestampContainer.textContent = `🕒 Last Updated: ${timestamp}`;
 
+        const timeNow = new Date().toLocaleTimeString();
+        timeLabels.push(timeNow);
+        if (timeLabels.length > 20) timeLabels.shift();
+
+        fields.forEach(field => {
+          const value = data[field];
+          if (!dataStore[field] && field !== "Timestamp") {
+            const bgColor = fieldColors[field] || "bg-white";
+            const icon = icons[field] || "box";
+            const card = document.createElement("div");
+            card.className = `card p-4 ${bgColor} rounded-2xl shadow-md text-center`;
+            card.innerHTML = `
+              <div class="flex items-center justify-center mb-2">
+                <i data-feather="${icon}" class="w-5 h-5 mr-2"></i>
+                <h2 class="text-sm font-bold text-gray-700">${field}</h2>
+              </div>
+              <p id="${field}" class="text-xl font-semibold text-gray-800">-</p>
+            `;
+            cardsContainer.appendChild(card);
+            dataStore[field] = [];
+          }
+
+          if (field !== "Timestamp") {
+            document.getElementById(field).textContent = value;
+
+            if (['AVERAGE_PHASE_VOLTAGE', 'TOTAL_POWER', 'Average_current'].includes(field)) {
+              const datasetIndex = combinedChart.data.datasets.findIndex(ds => ds.label === field);
+              if (datasetIndex !== -1) {
+                const chartData = combinedChart.data.datasets[datasetIndex].data;
+                chartData.push(value);
+                if (chartData.length > 50) chartData.shift();
+              }
+              combinedChart.data.labels = timeLabels;
+              combinedChart.update();
+            }
+          }
+        });
+
+        feather.replace(); // load icons
+      });
+    }
+
+    // Toggle menu visibility
     function toggleMenu() {
       const menu = document.getElementById('menu');
       menu.style.display = menu.style.display === 'block' ? 'none' : 'block';
+      fetchFirebasePaths(); // Fetch paths when menu is toggled
     }
 
-    function displayMeterData(meter) {
-      const dataElement = document.getElementById(meter);
-      if (dataElement) {
-        dataElement.style.display = 'block';
-      }
-    }
   </script>
 </head>
 <body class="bg-gray-100 text-gray-800 relative">
@@ -210,15 +232,7 @@
 
   <!-- Menu Items -->
   <div id="menu" class="fixed top-16 left-4 bg-white shadow-md rounded-md p-4 z-50">
-    <ul>
-      <li class="menu-item" onclick="displayMeterData('VOLTAGE_AB')">VOLTAGE_AB</li>
-      <li class="menu-item" onclick="displayMeterData('VOLTAGE_BC')">VOLTAGE_BC</li>
-      <li class="menu-item" onclick="displayMeterData('VOLTAGE_CA')">VOLTAGE_CA</li>
-      <li class="menu-item" onclick="displayMeterData('AVERAGE_PHASE_VOLTAGE')">AVERAGE_PHASE_VOLTAGE</li>
-      <li class="menu-item" onclick="displayMeterData('L1_Voltage')">L1_Voltage</li>
-      <li class="menu-item" onclick="displayMeterData('L2_Voltage')">L2_Voltage</li>
-      <li class="menu-item" onclick="displayMeterData('L3_Voltage')">L3_Voltage</li>
-    </ul>
+    <!-- Dynamically populated menu items -->
   </div>
 
   <!-- Floating Live Timestamp -->
@@ -229,7 +243,6 @@
   <!-- Header -->
   <header class="bg-green-700 text-white p-4 text-center">
     <h1 class="text-2xl font-bold">Energy Monitoring</h1>
-    <!-- Dynamically updated subheading -->
     <h2 id="subheading" class="text-lg font-semibold text-gray-200">Machine Shop</h2>
   </header>
 
