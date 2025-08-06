@@ -20,7 +20,7 @@
       display: flex;
       flex-direction: column;
       align-items: center;
-      height: 100vh;
+      height: 100%;
     }
 
     header {
@@ -278,13 +278,13 @@
         const dataFromFirebase = snapshot.val();
 
         if (!dataFromFirebase || Object.keys(dataFromFirebase).length === 0) {
-          valuesDisplay.innerHTML = <div class="loading">Loading...</div>;
+          valuesDisplay.innerHTML = `<div class="loading">Loading...</div>`;
           return;
         }
 
         // Update the "Last Updated" timestamp
         const updatedTime = document.getElementById("updatedTime");
-        updatedTime.textContent = Last Updated: ${convertTimestamp(dataFromFirebase.Timestamp)};
+        updatedTime.textContent = `Last Updated: ${convertTimestamp(dataFromFirebase.Timestamp)}`;
 
         // Clear previous content to avoid stacking old data
         valuesDisplay.innerHTML = "";
@@ -420,4 +420,3 @@
   </script>
 </body>
 </html>
-
