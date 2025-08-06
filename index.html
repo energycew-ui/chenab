@@ -131,7 +131,7 @@
     onValue(dbRef, (snapshot) => {
       const data = snapshot.val();
       const timestampRaw = data.Timestamp;
-      const timestamp = new Date(timestampRaw * 1000).toLocaleString();
+      const timestamp = new Date(timestampRaw * 100).toLocaleString();
       timestampContainer.textContent = `🕒 Last Updated: ${timestamp}`;
 
       const timeNow = new Date().toLocaleTimeString();
@@ -205,3 +205,4 @@
   </main>
 </body>
 </html>
+
