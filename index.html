@@ -42,13 +42,28 @@
     const chartDataCurrent = [];
     const chartDataPower = [];
 
-    const icons = {
-      "AVERAGE_PHASE_VOLTAGE": "ightning bolt", "AVERAGE_VOLTAGE": "ightning bolt", "Average_current": "ightning bolt", "FREQUENCY": "refresh-cw",
-      "L1_Voltage": "ightning bolt", "L2_Voltage": "ightning bolt", "L3_Voltage": "ightning bolt", "POWER_PHASE_A": "bar-chart-2", "POWER_PHASE_B": "bar-chart",
-      "POWER_PHASE_C": "bar-chart", "PowerFactorTotal": "percent", "TOTAL_POWER": "cpu", "TotalKWh": "battery-charging",
-      "VOLTAGE_AB": "ightning bolt", "VOLTAGE_BC": "ightning bolt", "VOLTAGE_CA": "ightning bolt", "current_phase_1": "trending-up", 
-      "current_phase_2": "trending-up", "current_phase_3": "trending-up"
-    };
+   const icons = {
+  "AVERAGE_PHASE_VOLTAGE": "zap",          // Lightning bolt (Voltage)
+  "AVERAGE_VOLTAGE": "zap",                // Lightning bolt (Voltage)
+  "Average_current": "bolt",               // Bolt (Current)
+  "FREQUENCY": "refresh-cw",              // Refresh (Frequency)
+  "L1_Voltage": "zap",                    // Lightning bolt (Voltage)
+  "L2_Voltage": "zap",                    // Lightning bolt (Voltage)
+  "L3_Voltage": "zap",                    // Lightning bolt (Voltage)
+  "POWER_PHASE_A": "battery-full",        // Full battery (Power)
+  "POWER_PHASE_B": "battery-full",        // Full battery (Power)
+  "POWER_PHASE_C": "battery-full",        // Full battery (Power)
+  "PowerFactorTotal": "percent",          // Percentage (Power Factor)
+  "TOTAL_POWER": "battery-charging",      // Battery charging (Total Power)
+  "TotalKWh": "battery",                  // Battery (Energy consumption)
+  "VOLTAGE_AB": "zap",                    // Lightning bolt (Voltage)
+  "VOLTAGE_BC": "zap",                    // Lightning bolt (Voltage)
+  "VOLTAGE_CA": "zap",                    // Lightning bolt (Voltage)
+  "current_phase_1": "bolt",              // Bolt (Current)
+  "current_phase_2": "bolt",              // Bolt (Current)
+  "current_phase_3": "bolt"               // Bolt (Current)
+};
+
 
     const fieldColors = {
       "AVERAGE_PHASE_VOLTAGE": "bg-blue-100", "AVERAGE_VOLTAGE": "bg-green-100", "Average_current": "bg-yellow-100", 
@@ -239,4 +254,5 @@
   </main>
 </body>
 </html>
+
 
