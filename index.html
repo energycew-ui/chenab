@@ -3,8 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Energy Monitoring</title>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <title>Smart Energy Dashboard</title>
   <script src="https://unpkg.com/feather-icons"></script>
   <script src="https://cdn.tailwindcss.com"></script>
 
@@ -14,27 +13,11 @@
       transition: all 0.3s ease;
       box-shadow: 0 10px 20px rgba(0, 0, 0, 0.15);
     }
-    #menu {
-      display: none;
-      display: flex;
-      justify-content: space-between;
-      margin-top: 20px;
-      gap: 10px;
-      overflow-x: auto;
-      padding: 10px;
-    }
-    .menu-item {
-      cursor: pointer;
-      padding: 10px;
-      margin: 5px;
-      background-color: #f1f1f1;
-      border-radius: 5px;
-    }
   </style>
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-    import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+    import { getDatabase, ref, onValue, off, get } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyDX7V2tnn17aWwTSvmJQRCNwUdRsbKuHRI",
@@ -49,11 +32,9 @@
     const app = initializeApp(firebaseConfig);
     const database = getDatabase(app);
 
-    let selectedPath = "Machine_shop_main"; // Default path
-
     const fields = [
-      "VOLTAGE_AB", "VOLTAGE_BC", "VOLTAGE_CA", "AVERAGE_PHASE_VOLTAGE", "L1_Voltage", "L2_Voltage", "L3_Voltage", "AVERAGE_VOLTAGE", "current_phase_1", "current_phase_2", "current_phase_3", "Average_current",  
-      "POWER_PHASE_A", "POWER_PHASE_B", "POWER_PHASE_C", "TOTAL_POWER", "FREQUENCY", "PowerFactorTotal", "TotalKWh", "Timestamp"
+      "VOLTAGE_AB","VOLTAGE_BC","VOLTAGE_CA","AVERAGE_PHASE_VOLTAGE","L1_Voltage", "L2_Voltage", "L3_Voltage", "AVERAGE_VOLTAGE","current_phase_1", "current_phase_2", "current_phase_3", "Average_current",  
+      "POWER_PHASE_A", "POWER_PHASE_B", "POWER_PHASE_C", "TOTAL_POWER","FREQUENCY", "PowerFactorTotal", "TotalKWh","Timestamp"
     ];
 
     const icons = {
@@ -101,90 +82,53 @@
     };
 
     const cardsContainer = document.getElementById("cards");
-    const timestampContainer = document.getElementById("timestamp");
-    const dataStore = {};
-    const timeLabels = [];
+    const pathSelector = document.getElementById("pathSelector");
+    const clockEl = document.getElementById("clock");
 
-    const combinedChartCtx = document.getElementById('combinedChart').getContext('2d');
-    const combinedChart = new Chart(combinedChartCtx, {
-      type: 'line',
-      data: {
-        labels: timeLabels,
-        datasets: [
-          {
-            label: 'AVERAGE_PHASE_VOLTAGE',
-            data: [],
-            borderColor: 'rgba(255, 99, 132, 1)',
-            fill: false,
-            tension: 0.99
-          },
-          {
-            label: 'TOTAL_POWER',
-            data: [],
-            borderColor: 'rgba(54, 162, 235, 1)',
-            fill: false,
-            tension: 0.5
-          },
-          {
-            label: 'Average_current',
-            data: [],
-            borderColor: 'rgba(75, 192, 192, 1)',
-            fill: false,
-            tension: 0.75
-          }
-        ]
-      },
-      options: {
-        responsive: true,
-        scales: {
-          x: { title: { display: true, text: 'Time' } },
-          y: { title: { display: true, text: 'Values' } }
+    let lastPath = null;
+
+    async function loadPaths() {
+      const rootRef = ref(database);
+      const snapshot = await get(rootRef);
+      if (snapshot.exists()) {
+        const paths = Object.keys(snapshot.val());
+        pathSelector.innerHTML = "";
+        paths.forEach(p => {
+          const option = document.createElement("option");
+          option.value = p;
+          option.textContent = p;
+          pathSelector.appendChild(option);
+        });
+        if (paths.length > 0) {
+          pathSelector.value = paths[0];
+          loadData(paths[0]);
         }
       }
-    });
-
-    // Fetch all Firebase paths dynamically
-    function fetchFirebasePaths() {
-      const menu = document.getElementById('menu');
-      menu.innerHTML = ''; // Clear any existing menu items
-
-      const rootRef = ref(database);
-      onValue(rootRef, (snapshot) => {
-        const paths = snapshot.val();
-        if (paths) {
-          // Dynamically create menu items based on Firebase paths
-          Object.keys(paths).forEach((path) => {
-            const menuItem = document.createElement('li');
-            menuItem.className = 'menu-item';
-            menuItem.textContent = path; // Path name
-            menuItem.onclick = () => {
-              selectPath(path); // Select the Firebase path
-            };
-            menu.appendChild(menuItem);
-          });
-        }
-      });
     }
 
-    // Change path and fetch data dynamically
-    function selectPath(path) {
-      selectedPath = path; // Update selected path
-      document.getElementById("subheading").textContent = path; // Set subheading to path name
+    function loadData(path) {
+      if (lastPath) {
+        const oldRef = ref(database, lastPath);
+        off(oldRef); // Remove listener from old path
+      }
 
-      const dbRef = ref(database, selectedPath);
+      lastPath = path;
+      const dbRef = ref(database, path);
       onValue(dbRef, (snapshot) => {
         const data = snapshot.val();
-        const timestampRaw = data.Timestamp;
-        const timestamp = new Date((timestampRaw * 1000) - (5 * 60 * 60 * 1000)).toLocaleString();
-        timestampContainer.textContent = `🕒 Last Updated: ${timestamp}`;
+        cardsContainer.innerHTML = ""; // clear UI
 
-        const timeNow = new Date().toLocaleTimeString();
-        timeLabels.push(timeNow);
-        if (timeLabels.length > 20) timeLabels.shift();
+        if (!data) {
+          const msg = document.createElement("p");
+          msg.textContent = `❌ No data found for "${path}"`;
+          msg.className = "text-center text-red-600 font-semibold col-span-4";
+          cardsContainer.appendChild(msg);
+          return;
+        }
 
         fields.forEach(field => {
-          const value = data[field];
-          if (!dataStore[field] && field !== "Timestamp") {
+          if (field !== "Timestamp" && data[field] !== undefined) {
+            const value = data[field];
             const bgColor = fieldColors[field] || "bg-white";
             const icon = icons[field] || "box";
             const card = document.createElement("div");
@@ -194,72 +138,49 @@
                 <i data-feather="${icon}" class="w-5 h-5 mr-2"></i>
                 <h2 class="text-sm font-bold text-gray-700">${field}</h2>
               </div>
-              <p id="${field}" class="text-xl font-semibold text-gray-800">-</p>
+              <p class="text-xl font-semibold text-gray-800">${value}</p>
             `;
             cardsContainer.appendChild(card);
-            dataStore[field] = [];
-          }
-
-          if (field !== "Timestamp") {
-            document.getElementById(field).textContent = value;
-
-            if (['AVERAGE_PHASE_VOLTAGE', 'TOTAL_POWER', 'Average_current'].includes(field)) {
-              const datasetIndex = combinedChart.data.datasets.findIndex(ds => ds.label === field);
-              if (datasetIndex !== -1) {
-                const chartData = combinedChart.data.datasets[datasetIndex].data;
-                chartData.push(value);
-                if (chartData.length > 50) chartData.shift();
-              }
-              combinedChart.data.labels = timeLabels;
-              combinedChart.update();
-            }
           }
         });
 
-        feather.replace(); // load icons
+        feather.replace();
       });
     }
 
-    // Toggle menu visibility
-    function toggleMenu() {
-      const menu = document.getElementById('menu');
-      menu.style.display = menu.style.display === 'block' ? 'none' : 'block';
-      fetchFirebasePaths(); // Fetch paths when menu is toggled
+    pathSelector.addEventListener("change", () => {
+      const newPath = pathSelector.value;
+      loadData(newPath);
+    });
+
+    function updateClock() {
+      const now = new Date().toLocaleString("en-PK", {
+        timeZone: "Asia/Karachi",
+        hour12: true
+      });
+      clockEl.textContent = now;
     }
 
+    setInterval(updateClock, 1000);
+    updateClock();
+    loadPaths();
   </script>
 </head>
-<body class="bg-gray-100 text-gray-800 relative">
-
-  <!-- Menu Button -->
-  <button onclick="toggleMenu()" class="fixed top-4 left-4 bg-white text-black px-3 py-1 rounded shadow z-50">
-    Menu
-  </button>
-
-  <!-- Menu Items -->
-  <div id="menu" class="fixed top-16 left-4 bg-white shadow-md rounded-md p-4 z-50">
-    <!-- Dynamically populated menu items -->
-  </div>
-
-  <!-- Floating Live Timestamp -->
-  <div class="fixed top-4 right-4 bg-white text-sm text-gray-700 px-3 py-2 rounded shadow z-50">
-    <span id="timestamp">🕒 Last Updated: --</span>
-  </div>
+<body class="bg-gray-100 text-gray-800">
 
   <!-- Header -->
-  <header class="bg-green-700 text-white p-4 text-center">
-    <h1 class="text-2xl font-bold">Energy Monitoring</h1>
-    <h2 id="subheading" class="text-lg font-semibold text-gray-200">Machine Shop</h2>
+  <header class="bg-green-700 text-white p-4 flex justify-between items-center">
+    <div class="flex items-center gap-4">
+      <label for="pathSelector" class="font-semibold">Select Path:</label>
+      <select id="pathSelector" class="text-black p-1 rounded"></select>
+    </div>
+    <h1 class="text-xl font-bold text-center flex-1">Smart Energy Dashboard</h1>
+    <div id="clock" class="text-sm font-semibold"></div>
   </header>
 
-  <!-- Main Content -->
+  <!-- Main -->
   <main class="p-4 container mx-auto">
     <section id="cards" class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8"></section>
-
-    <section class="bg-white p-4 rounded shadow mb-8">
-      <h3 class="text-lg font-semibold mb-2">Voltage & Current Trends</h3>
-      <canvas id="combinedChart"></canvas>
-    </section>
   </main>
 </body>
 </html>
