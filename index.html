@@ -138,19 +138,23 @@
       }
     });
 
-    // Fetch all meters dynamically from Firebase and populate the menu
+    // Function to fetch all meters dynamically from Firebase and populate the menu
     function fetchAllMeters() {
+      const menu = document.getElementById('menu');
+      menu.innerHTML = ''; // Clear any existing menu items
+
       onValue(dbRef, (snapshot) => {
-        const meters = snapshot.val(); // Getting all meter data
-        const menu = document.getElementById('menu');
-        menu.innerHTML = ''; // Clear any previous menu items
+        const meters = snapshot.val(); // Get all meters
+        if (!meters) return;
 
         // Dynamically add meters to the menu
         for (let meter in meters) {
           const menuItem = document.createElement('li');
           menuItem.className = 'menu-item';
-          menuItem.textContent = meter; // meter name like 'home1', 'home2', etc.
-          menuItem.onclick = () => displayMeterData(meter); // Display selected meter data
+          menuItem.textContent = meter; // Meter name like 'home1', 'home2', etc.
+          menuItem.onclick = () => {
+            displayMeterData(meter); // When a meter is clicked, show its data
+          };
           menu.appendChild(menuItem);
         }
       });
@@ -158,9 +162,11 @@
 
     // Function to fetch and display data for the selected meter
     function fetchMeterData(meterName) {
-      const dbRef = ref(database, `Machine_shop_main/${meterName}`);
-      onValue(dbRef, (snapshot) => {
+      const dbRefMeter = ref(database, `Machine_shop_main/${meterName}`);
+      onValue(dbRefMeter, (snapshot) => {
         const data = snapshot.val();
+        if (!data) return;
+
         const timestampRaw = data.Timestamp;
         const timestamp = new Date((timestampRaw * 1000) - (5 * 60 * 60 * 1000)).toLocaleString();
         timestampContainer.textContent = `🕒 Last Updated: ${timestamp}`;
