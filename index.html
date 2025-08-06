@@ -3,10 +3,10 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Smart Energy Dashboard</title>
+  <title>Machine Shop Main Energy Dashboard</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://unpkg.com/feather-icons"></script>
   <script src="https://cdn.tailwindcss.com"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
   <style>
     .card:hover {
@@ -14,11 +14,9 @@
       transition: all 0.3s ease;
       box-shadow: 0 10px 20px rgba(0, 0, 0, 0.15);
     }
-
     #menu {
       display: none;
     }
-
     .menu-item {
       cursor: pointer;
       padding: 10px;
@@ -27,31 +25,14 @@
       border-radius: 5px;
     }
 
-    /* Header Styles */
-    header h1 {
-      font-size: 2rem;
-    }
-
-    /* Dropdown Styling */
-    select {
-      font-size: 1rem;
-      padding: 0.5rem;
-      margin: 0 1rem;
-    }
-
-    .card-container {
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 1rem;
-    }
-
-    /* Chart Container */
+    /* Chart Styling */
     .chart-container {
       background-color: white;
       padding: 1rem;
       border-radius: 0.5rem;
       margin-top: 1.5rem;
     }
+
   </style>
 
   <script type="module">
@@ -70,6 +51,9 @@
 
     const app = initializeApp(firebaseConfig);
     const database = getDatabase(app);
+
+    let path = "Machine_shop_main";
+    const dbRef = ref(database, path);
 
     const fields = [
       "VOLTAGE_AB", "VOLTAGE_BC", "VOLTAGE_CA", "AVERAGE_PHASE_VOLTAGE", "L1_Voltage", "L2_Voltage", "L3_Voltage", "AVERAGE_VOLTAGE", "current_phase_1", "current_phase_2", "current_phase_3", "Average_current",  
@@ -121,12 +105,49 @@
     };
 
     const cardsContainer = document.getElementById("cards");
+    const timestampContainer = document.getElementById("timestamp");
     const pathSelector = document.getElementById("pathSelector");
-    const clockEl = document.getElementById("clock");
+    const subheading = document.getElementById("subheading");
+    const timeLabels = [];
 
-    let lastPath = null;
+    const combinedChartCtx = document.getElementById('combinedChart').getContext('2d');
+    const combinedChart = new Chart(combinedChartCtx, {
+      type: 'line',
+      data: {
+        labels: timeLabels,
+        datasets: [
+          {
+            label: 'Average Voltage',
+            data: [],
+            borderColor: 'rgba(255, 99, 132, 1)',
+            fill: false,
+            tension: 0.99
+          },
+          {
+            label: 'Average Current',
+            data: [],
+            borderColor: 'rgba(75, 192, 192, 1)',
+            fill: false,
+            tension: 0.75
+          },
+          {
+            label: 'Total Power',
+            data: [],
+            borderColor: 'rgba(54, 162, 235, 1)',
+            fill: false,
+            tension: 0.5
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        scales: {
+          x: { title: { display: true, text: 'Time' } },
+          y: { title: { display: true, text: 'Values' } }
+        }
+      }
+    });
 
-    // Function to load available paths dynamically
     async function loadPaths() {
       const rootRef = ref(database);
       const snapshot = await get(rootRef);
@@ -146,18 +167,11 @@
       }
     }
 
-    // Function to load data for the selected path
     function loadData(path) {
-      if (lastPath) {
-        const oldRef = ref(database, lastPath);
-        off(oldRef); // Remove listener from old path
-      }
-
-      lastPath = path;
       const dbRef = ref(database, path);
       onValue(dbRef, (snapshot) => {
         const data = snapshot.val();
-        cardsContainer.innerHTML = ""; // Clear existing cards
+        cardsContainer.innerHTML = ""; // clear UI
 
         if (!data) {
           const msg = document.createElement("p");
@@ -179,109 +193,73 @@
                 <i data-feather="${icon}" class="w-5 h-5 mr-2"></i>
                 <h2 class="text-sm font-bold text-gray-700">${field}</h2>
               </div>
-              <p class="text-xl font-semibold text-gray-800">${value}</p>
+              <p id="${field}" class="text-xl font-semibold text-gray-800">${value}</p>
             `;
             cardsContainer.appendChild(card);
           }
         });
 
-        feather.replace();
+        feather.replace(); // load icons
+
+        // Update chart data
         updateChart(data);
+
+        // Update subheading with selected path
+        subheading.textContent = path;
       });
     }
 
-    // Function to update chart based on the selected path
-    function updateChart(data) {
-      const timeLabels = [];
-      const voltageData = [];
-      const currentData = [];
-      const powerData = [];
-
-      // Push relevant data for chart visualization
-      if (data["AVERAGE_VOLTAGE"]) voltageData.push(data["AVERAGE_VOLTAGE"]);
-      if (data["Average_current"]) currentData.push(data["Average_current"]);
-      if (data["TOTAL_POWER"]) powerData.push(data["TOTAL_POWER"]);
-
-      const combinedChartCtx = document.getElementById('combinedChart').getContext('2d');
-      const combinedChart = new Chart(combinedChartCtx, {
-        type: 'line',
-        data: {
-          labels: timeLabels,
-          datasets: [
-            {
-              label: 'Average Voltage',
-              data: voltageData,
-              borderColor: 'rgba(255, 99, 132, 1)',
-              fill: false,
-              tension: 0.99
-            },
-            {
-              label: 'Average Current',
-              data: currentData,
-              borderColor: 'rgba(75, 192, 192, 1)',
-              fill: false,
-              tension: 0.75
-            },
-            {
-              label: 'Total Power',
-              data: powerData,
-              borderColor: 'rgba(54, 162, 235, 1)',
-              fill: false,
-              tension: 0.5
-            }
-          ]
-        },
-        options: {
-          responsive: true,
-          scales: {
-            x: { title: { display: true, text: 'Time' } },
-            y: { title: { display: true, text: 'Values' } }
-          }
-        }
-      });
-    }
-
-    // Event Listener for path change
     pathSelector.addEventListener("change", () => {
       const newPath = pathSelector.value;
       loadData(newPath);
-      document.getElementById("subheading").textContent = newPath; // Update the subheading dynamically
     });
 
-    // Clock Update
-    function updateClock() {
-      const now = new Date().toLocaleString("en-PK", {
-        timeZone: "Asia/Karachi",
-        hour12: true
-      });
-      clockEl.textContent = now;
+    function updateChart(data) {
+      const timeNow = new Date().toLocaleTimeString();
+      timeLabels.push(timeNow);
+      if (timeLabels.length > 50) timeLabels.shift(); // Limit the number of labels
+
+      if (data["AVERAGE_VOLTAGE"]) combinedChart.data.datasets[0].data.push(data["AVERAGE_VOLTAGE"]);
+      if (data["Average_current"]) combinedChart.data.datasets[1].data.push(data["Average_current"]);
+      if (data["TOTAL_POWER"]) combinedChart.data.datasets[2].data.push(data["TOTAL_POWER"]);
+
+      combinedChart.data.labels = timeLabels;
+      combinedChart.update();
     }
 
-    setInterval(updateClock, 1000);
-    updateClock();
-
-    loadPaths(); // Load paths on page load
+    loadPaths(); // Initial load of paths
   </script>
 </head>
-<body class="bg-gray-100 text-gray-800">
+<body class="bg-gray-100 text-gray-800 relative">
+
+  <!-- Menu Button -->
+  <button onclick="toggleMenu()" class="fixed top-4 left-4 bg-white text-black px-3 py-1 rounded shadow z-50">
+    Menu
+  </button>
+
+  <!-- Menu Items -->
+  <div id="menu" class="fixed top-16 left-4 bg-white shadow-md rounded-md p-4 z-50">
+    <ul>
+      <li class="menu-item" onclick="loadData('Machine_shop_main')">Machine_shop_main</li>
+      <li class="menu-item" onclick="loadData('Other_path')">Other_path</li>
+    </ul>
+  </div>
+
+  <!-- Floating Live Timestamp -->
+  <div class="fixed top-4 right-4 bg-white text-sm text-gray-700 px-3 py-2 rounded shadow z-50">
+    <span id="timestamp">🕒 Last Updated: --</span>
+  </div>
 
   <!-- Header -->
-  <header class="bg-green-700 text-white p-4 flex justify-between items-center">
-    <div class="flex items-center gap-4">
-      <label for="pathSelector" class="font-semibold">Select Path:</label>
-      <select id="pathSelector" class="text-black p-1 rounded"></select>
-    </div>
-    <h1 class="text-2xl font-bold text-center flex-1">Energy Monitoring</h1>
-    <!-- Dynamically updated subheading -->
+  <header class="bg-green-700 text-white p-4 text-center">
+    <h1 class="text-2xl font-bold">Energy Monitoring</h1>
     <h2 id="subheading" class="text-lg font-semibold text-gray-200">Machine Shop</h2>
   </header>
 
   <!-- Main Content -->
   <main class="p-4 container mx-auto">
-    <!-- Cards for Data Display -->
-    <section id="cards" class="card-container"></section>
+    <section id="cards" class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8"></section>
 
-    <!-- Chart Section -->
     <section class="chart-container">
       <h3 class="text-lg font-semibold mb-2">Voltage, Current, and Power Trend</h3>
       <canvas id="combinedChart"></canvas>
