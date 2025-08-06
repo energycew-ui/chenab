@@ -141,12 +141,12 @@
     // Fetch all meters dynamically from Firebase and populate the menu
     function fetchAllMeters() {
       onValue(dbRef, (snapshot) => {
-        const data = snapshot.val(); // Getting all meter data
+        const meters = snapshot.val(); // Getting all meter data
         const menu = document.getElementById('menu');
         menu.innerHTML = ''; // Clear any previous menu items
 
         // Dynamically add meters to the menu
-        for (let meter in data) {
+        for (let meter in meters) {
           const menuItem = document.createElement('li');
           menuItem.className = 'menu-item';
           menuItem.textContent = meter; // meter name like 'home1', 'home2', etc.
