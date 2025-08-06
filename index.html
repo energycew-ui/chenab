@@ -47,7 +47,7 @@
     const dbRef = ref(database, path);
 
     const fields = [
-      "VOLTAGE_AB", "VOLTAGE_BC", "VOLTAGE_CA", "AVERAGE_PHASE_VOLTAGE", "L1_Voltage", "L2_Voltage", "L3_Voltage", "AVERAGE_VOLTAGE", "current_phase_1", "current_phase_2", "current_phase_3", "Average_current",
+      "VOLTAGE_AB", "VOLTAGE_BC", "VOLTAGE_CA", "AVERAGE_PHASE_VOLTAGE", "L1_Voltage", "L2_Voltage", "L3_Voltage", "AVERAGE_VOLTAGE", "current_phase_1", "current_phase_2", "current_phase_3", "Average_current",  
       "POWER_PHASE_A", "POWER_PHASE_B", "POWER_PHASE_C", "TOTAL_POWER", "FREQUENCY", "PowerFactorTotal", "TotalKWh", "Timestamp"
     ];
 
@@ -138,20 +138,22 @@
       }
     });
 
-    // Fetch all meters and populate menu
+    // Fetch all meters dynamically and populate menu
     onValue(dbRef, (snapshot) => {
-      const meters = snapshot.val();
+      const data = snapshot.val();
+      const meters = Object.keys(data); // Get all meter names dynamically
+
+      // Populate menu with meters
       const menu = document.getElementById('menu');
       menu.innerHTML = ''; // Clear existing menu items
 
-      // Iterate through all meters and display their names in the menu
-      for (let meterName in meters) {
+      meters.forEach(meter => {
         const menuItem = document.createElement('li');
         menuItem.className = 'menu-item';
-        menuItem.textContent = meterName;
-        menuItem.onclick = () => displayMeterData(meterName);
+        menuItem.textContent = meter;
+        menuItem.onclick = () => displayMeterData(meter);
         menu.appendChild(menuItem);
-      }
+      });
     });
 
     // Function to fetch and display data for the selected meter
