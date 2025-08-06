@@ -14,6 +14,9 @@
       transition: all 0.3s ease;
       box-shadow: 0 10px 20px rgba(0, 0, 0, 0.15);
     }
+    #menu {
+      display: none;
+    }
   </style>
 
   <script type="module">
@@ -174,15 +177,29 @@
 
       feather.replace(); // load icons
     });
+
+    function toggleMenu() {
+      const menu = document.getElementById('menu');
+      menu.style.display = menu.style.display === 'block' ? 'none' : 'block';
+    }
   </script>
 </head>
 <body class="bg-gray-100 text-gray-800 relative">
 
-  <!-- Theme Toggle Button -->
-  <button onclick="document.documentElement.classList.toggle('dark')"
-          class="fixed top-4 right-4 bg-white text-black px-3 py-1 rounded shadow z-50">
-    🌗 Toggle Theme
+  <!-- Menu Button -->
+  <button onclick="toggleMenu()" class="fixed top-4 left-4 bg-white text-black px-3 py-1 rounded shadow z-50">
+    Menu
   </button>
+
+  <!-- Menu Items -->
+  <div id="menu" class="fixed top-16 left-4 bg-white shadow-md rounded-md p-4 z-50">
+    <ul>
+      <li><a href="#">VOLTAGE_AB</a></li>
+      <li><a href="#">VOLTAGE_BC</a></li>
+      <li><a href="#">VOLTAGE_CA</a></li>
+      <!-- Add other fields here -->
+    </ul>
+  </div>
 
   <!-- Floating Live Timestamp -->
   <div class="fixed bottom-4 right-4 bg-white text-sm text-gray-700 px-3 py-2 rounded shadow z-50">
@@ -205,6 +222,3 @@
   </main>
 </body>
 </html>
-
-
-
