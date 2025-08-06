@@ -46,11 +46,6 @@
       "POWER_PHASE_B", "POWER_PHASE_C", "TOTAL_POWER", "FREQUENCY", "PowerFactorTotal", "TotalKWh", "Timestamp"
     ];
 
-    const chartLabels = [];
-    const chartDataVoltage = [];
-    const chartDataCurrent = [];
-    const chartDataPower = [];
-
     const icons = {
       "AVERAGE_PHASE_VOLTAGE": "zap",          // Lightning bolt (Voltage)
       "AVERAGE_VOLTAGE": "zap",                // Lightning bolt (Voltage)
@@ -88,48 +83,7 @@
     const currentPathEl = document.getElementById("currentPath");
 
     let lastPath = null;
-
-    const chartCtx = document.getElementById("lineChart").getContext("2d");
-    const chart = new Chart(chartCtx, {
-      type: "line",
-      data: {
-        labels: chartLabels,
-        datasets: [
-          {
-            label: "Average Voltage",
-            data: chartDataVoltage,
-            borderColor: "blue",
-            fill: false
-          },
-          {
-            label: "Average Current",
-            data: chartDataCurrent,
-            borderColor: "orange",
-            fill: false
-          },
-          {
-            label: "Total Power",
-            data: chartDataPower,
-            borderColor: "green",
-            fill: false
-          }
-        ]
-      },
-      options: {
-        responsive: true,
-        plugins: {
-          legend: { position: "top" },
-          title: { display: true, text: "Real-Time Energy Parameters" }
-        },
-        scales: {
-          y: {
-            ticks: {
-              stepSize: 10  // This sets the vertical difference to 10
-            }
-          }
-        }
-      }
-    });
+    let chartInstances = {}; // Object to store separate chart instances
 
     async function loadPaths() {
       const rootRef = ref(database);
@@ -150,6 +104,51 @@
       }
     }
 
+    function createChart(path) {
+      // Create a unique chart for each path
+      const chartCtx = document.getElementById(`${path}-lineChart`).getContext("2d");
+      return new Chart(chartCtx, {
+        type: "line",
+        data: {
+          labels: [],
+          datasets: [
+            {
+              label: "Average Voltage",
+              data: [],
+              borderColor: "blue",
+              fill: false
+            },
+            {
+              label: "Average Current",
+              data: [],
+              borderColor: "orange",
+              fill: false
+            },
+            {
+              label: "Total Power",
+              data: [],
+              borderColor: "green",
+              fill: false
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          plugins: {
+            legend: { position: "top" },
+            title: { display: true, text: `Real-Time Energy Parameters for ${path}` }
+          },
+          scales: {
+            y: {
+              ticks: {
+                stepSize: 10  // This sets the vertical difference to 10
+              }
+            }
+          }
+        }
+      });
+    }
+
     function loadData(path) {
       document.getElementById("currentPath").textContent = path;
 
@@ -160,6 +159,9 @@
 
       lastPath = path;
       const dbRef = ref(database, path);
+      const chartInstance = createChart(path); // Create chart for the new path
+      chartInstances[path] = chartInstance; // Store the chart instance
+
       onValue(dbRef, (snapshot) => {
         const data = snapshot.val();
         cardsContainer.innerHTML = "";
@@ -199,18 +201,19 @@
 
         // Update chart
         const timestamp = new Date().toLocaleTimeString("en-PK", { timeZone: "Asia/Karachi" });
-        if (chartLabels.length > 50) {
-          chartLabels.shift();
-          chartDataVoltage.shift();
-          chartDataCurrent.shift();
-          chartDataPower.shift();
+        if (chartInstance.data.labels.length > 20) {
+          chartInstance.data.labels.shift();
+          chartInstance.data.datasets.forEach((dataset) => {
+            dataset.data.shift();
+          });
         }
-        chartLabels.push(timestamp);
-        chartDataVoltage.push(data.AVERAGE_PHASE_VOLTAGE || 0);
-        chartDataCurrent.push(data.Average_current || 0);
-        chartDataPower.push(data.TOTAL_POWER || 0);
-        chart.update();
 
+        chartInstance.data.labels.push(timestamp);
+        chartInstance.data.datasets[0].data.push(data.AVERAGE_PHASE_VOLTAGE || 0);
+        chartInstance.data.datasets[1].data.push(data.Average_current || 0);
+        chartInstance.data.datasets[2].data.push(data.TOTAL_POWER || 0);
+
+        chartInstance.update();
         feather.replace();
       });
     }
@@ -257,9 +260,9 @@
     <!-- Line Chart Section -->
     <section class="bg-white rounded-xl shadow-md p-4">
       <h2 class="text-center text-lg font-bold mb-2">Live Graph</h2>
+      <!-- Placeholder for dynamically created charts -->
       <canvas id="lineChart" height="100"></canvas>
     </section>
   </main>
 </body>
 </html>
-
