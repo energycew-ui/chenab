@@ -47,8 +47,8 @@
     const dbRef = ref(database, path);
 
     const fields = [
-      "VOLTAGE_AB", "VOLTAGE_BC", "VOLTAGE_CA", "AVERAGE_PHASE_VOLTAGE", "L1_Voltage", "L2_Voltage", "L3_Voltage", "AVERAGE_VOLTAGE", "current_phase_1", "current_phase_2", "current_phase_3", "Average_current",  
-      "POWER_PHASE_A", "POWER_PHASE_B", "POWER_PHASE_C", "TOTAL_POWER", "FREQUENCY", "PowerFactorTotal", "TotalKWh", "Timestamp"
+      "VOLTAGE_AB","VOLTAGE_BC","VOLTAGE_CA","AVERAGE_PHASE_VOLTAGE","L1_Voltage", "L2_Voltage", "L3_Voltage", "AVERAGE_VOLTAGE","current_phase_1", "current_phase_2", "current_phase_3", "Average_current",  
+      "POWER_PHASE_A", "POWER_PHASE_B", "POWER_PHASE_C", "TOTAL_POWER","FREQUENCY", "PowerFactorTotal", "TotalKWh","Timestamp"
     ];
 
     const icons = {
@@ -138,23 +138,23 @@
       }
     });
 
-    // Fetch all meters dynamically and populate menu
-    onValue(dbRef, (snapshot) => {
-      const data = snapshot.val();
-      const meters = Object.keys(data); // Get all meter names dynamically
+    // Fetch all meters dynamically from Firebase and populate the menu
+    function fetchAllMeters() {
+      onValue(dbRef, (snapshot) => {
+        const meters = snapshot.val(); // Getting all meter data
+        const menu = document.getElementById('menu');
+        menu.innerHTML = ''; // Clear any previous menu items
 
-      // Populate menu with meters
-      const menu = document.getElementById('menu');
-      menu.innerHTML = ''; // Clear existing menu items
-
-      meters.forEach(meter => {
-        const menuItem = document.createElement('li');
-        menuItem.className = 'menu-item';
-        menuItem.textContent = meter;
-        menuItem.onclick = () => displayMeterData(meter);
-        menu.appendChild(menuItem);
+        // Dynamically add meters to the menu
+        for (let meter in meters) {
+          const menuItem = document.createElement('li');
+          menuItem.className = 'menu-item';
+          menuItem.textContent = meter; // meter name like 'home1', 'home2', etc.
+          menuItem.onclick = () => displayMeterData(meter); // Display selected meter data
+          menu.appendChild(menuItem);
+        }
       });
-    });
+    }
 
     // Function to fetch and display data for the selected meter
     function fetchMeterData(meterName) {
@@ -211,6 +211,7 @@
     function toggleMenu() {
       const menu = document.getElementById('menu');
       menu.style.display = menu.style.display === 'block' ? 'none' : 'block';
+      fetchAllMeters(); // Fetch meters when the menu is shown
     }
 
     // Show meter data when clicked on the menu
