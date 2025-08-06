@@ -20,8 +20,7 @@
       display: flex;
       flex-direction: column;
       align-items: center;
-      height: 100%;
-      overflow-y: auto;
+      height: 100vh;
     }
 
     header {
@@ -85,23 +84,16 @@
     }
 
     /* Content Area */
-    .content-container {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      width: 90%;
-      overflow-y: auto;
-      margin-top: 30px;
-      padding-bottom: 100px; /* Ensures enough space for graph */
-    }
-
     .box-container {
       display: flex;
       flex-wrap: wrap;
       justify-content: center;
       gap: 20px;
-      width: 100%;
+      margin-top: 30px;
+      padding: 10px;
+      width: 90%;
       overflow-y: auto;
+      height: calc(100vh - 160px); /* To avoid vertical scrolling of content */
     }
 
     .value-box {
@@ -159,12 +151,14 @@
 
     /* Graph Section */
     .graph-container {
-      width: 100%;
-      padding: 20px;
+      width: 40%;
+      margin-top: 10px;
+      padding: 6px;
       background-color: #34495e;
-      border-radius: 10px;
-      box-shadow: 0 0 20px #ecf0f188;
-      margin-top: 50px; /* Graph starts below the boxes */
+      border-radius: 05px;
+      box-shadow: 0 0 8px #ecf0f188;
+      margin-top: 5px; /* Ensure the graph stays below the boxes */
+      margin-bottom: 5px; /* Ensure graph doesn't overlap footer */
     }
 
     .graph-title {
@@ -208,22 +202,23 @@
     <!-- Meter buttons will be added here dynamically -->
   </div>
 
-  <!-- Content Area -->
-  <div class="content-container">
-    <!-- Display Values -->
-    <div class="box-container" id="valuesDisplay">
-      <!-- Value boxes will be added here dynamically based on meter selection -->
+  <!-- Display Values -->
+  <div class="box-container" id="valuesDisplay">
+    <!-- Value boxes will be added here dynamically based on meter selection -->
+  </div>
+
+  <!-- Button to open/close the sidebar -->
+  <button class="toggle-sidebar" onclick="toggleSidebar()">☰</button>
+
+  <!-- Graph Section -->
+  <div class="graph-container" id="graphSection">
+    <div class="graph-title">Energy Metrics Over Time</div>
+    <div class="graph-controls">
+      <button id="togglePhaseVoltage">Average Phase Voltage</button>
+      <button id="toggleCurrent">Average Current</button>
+      <button id="togglePower">Total Power</button>
     </div>
-    <!-- Graph Section -->
-    <div class="graph-container" id="graphSection">
-      <div class="graph-title">Energy Metrics Over Time</div>
-      <div class="graph-controls">
-        <button id="togglePhaseVoltage">Average Phase Voltage</button>
-        <button id="toggleCurrent">Average Current</button>
-        <button id="togglePower">Total Power</button>
-      </div>
-      <canvas id="energyGraph"></canvas>
-    </div>
+    <canvas id="energyGraph"></canvas>
   </div>
 
   <script>
@@ -425,3 +420,4 @@
   </script>
 </body>
 </html>
+
