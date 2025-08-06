@@ -97,6 +97,13 @@
         plugins: {
           legend: { position: "top" },
           title: { display: true, text: "Real-Time Energy Parameters" }
+        },
+        scales: {
+          y: {
+            ticks: {
+              stepSize: 10  // This sets the vertical difference to 10
+            }
+          }
         }
       }
     });
@@ -232,4 +239,3 @@
   </main>
 </body>
 </html>
-
