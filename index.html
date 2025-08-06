@@ -15,14 +15,23 @@
       box-shadow: 0 10px 20px rgba(0, 0, 0, 0.15);
     }
     #menu {
-      display: none;
+      display: flex;
+      overflow-x: auto;
+      padding: 10px;
+      margin: 20px;
+      background-color: white;
+      border-radius: 5px;
+      box-shadow: 0 5px 10px rgba(0, 0, 0, 0.1);
     }
     .menu-item {
       cursor: pointer;
-      padding: 10px;
+      padding: 10px 20px;
       margin: 5px;
       background-color: #f1f1f1;
       border-radius: 5px;
+    }
+    .menu-item:hover {
+      background-color: #ddd;
     }
   </style>
 
@@ -138,7 +147,7 @@
       }
     });
 
-    // Function to fetch all meters dynamically from Firebase and populate the menu
+    // Fetch all meters dynamically from Firebase and populate the menu
     function fetchAllMeters() {
       const menu = document.getElementById('menu');
       menu.innerHTML = ''; // Clear any existing menu items
@@ -149,7 +158,7 @@
 
         // Dynamically add meters to the menu
         for (let meter in meters) {
-          const menuItem = document.createElement('li');
+          const menuItem = document.createElement('div');
           menuItem.className = 'menu-item';
           menuItem.textContent = meter; // Meter name like 'home1', 'home2', etc.
           menuItem.onclick = () => {
@@ -219,13 +228,6 @@
       menu.style.display = menu.style.display === 'block' ? 'none' : 'block';
       fetchAllMeters(); // Fetch meters when the menu is shown
     }
-
-    // Show meter data when clicked on the menu
-    function displayMeterData(meter) {
-      // Clear any existing data before fetching new meter data
-      cardsContainer.innerHTML = '';
-      fetchMeterData(meter);
-    }
   </script>
 </head>
 <body class="bg-gray-100 text-gray-800 relative">
@@ -235,8 +237,8 @@
     Menu
   </button>
 
-  <!-- Menu Items -->
-  <div id="menu" class="fixed top-16 left-4 bg-white shadow-md rounded-md p-4 z-50">
+  <!-- Menu Items (Horizontal list) -->
+  <div id="menu" class="fixed top-16 left-4 flex space-x-4 p-4 bg-white shadow-md rounded-md z-50">
     <!-- Meter names will be populated dynamically here -->
   </div>
 
