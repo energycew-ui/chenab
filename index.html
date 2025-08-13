@@ -123,8 +123,10 @@
         },
         scales: {
           y: {
-            ticks: {
-              stepSize: 0.01 // This sets the vertical difference to 10
+            min: 0, // Start at 0
+        max: 400, // End at 400
+        ticks: {
+          stepSize: 10 // This sets the vertical difference to 10
             }
           }
         }
@@ -262,6 +264,7 @@
   </main>
 </body>
 </html>
+
 
 
 
