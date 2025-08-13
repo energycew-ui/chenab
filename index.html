@@ -124,7 +124,7 @@
         scales: {
           y: {
             ticks: {
-              stepSize: 0.5  // This sets the vertical difference to 10
+              stepSize: 0.01 // This sets the vertical difference to 10
             }
           }
         }
@@ -199,7 +199,7 @@
 
         // Update chart
         const timestamp = new Date().toLocaleTimeString("en-PK", { timeZone: "Asia/Karachi" });
-        if (chartLabels.length > 80) {
+        if (chartLabels.length > 50) {
           chartLabels.shift();
           chartDataVoltage.shift();
           chartDataCurrent.shift();
@@ -262,6 +262,7 @@
   </main>
 </body>
 </html>
+
 
 
 
