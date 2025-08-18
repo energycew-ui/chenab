@@ -118,7 +118,15 @@
                     legend: { position: "top" },
                     title: { display: true, text: "Voltage Over Time" }
                 },
-                scales: { y: { min: 0, max: 440, ticks: { stepSize: 1 } } }
+                scales: {
+                    y: {
+                        suggestedMin: Math.min(...chartDataVoltage) - 10, // Adding margin for better view
+                        suggestedMax: Math.max(...chartDataVoltage) + 10, // Adding margin for better view
+                        ticks: {
+                            stepSize: 1
+                        }
+                    }
+                }
             }
         });
 
@@ -139,7 +147,15 @@
                     legend: { position: "top" },
                     title: { display: true, text: "Current Over Time" }
                 },
-                scales: { y: { min: 0, max: 440, ticks: { stepSize: 1 } } }
+                scales: {
+                    y: {
+                        suggestedMin: Math.min(...chartDataCurrent) - 10, // Adding margin for better view
+                        suggestedMax: Math.max(...chartDataCurrent) + 10, // Adding margin for better view
+                        ticks: {
+                            stepSize: 1
+                        }
+                    }
+                }
             }
         });
 
@@ -160,7 +176,15 @@
                     legend: { position: "top" },
                     title: { display: true, text: "Power Over Time" }
                 },
-                scales: { y: { min: 0, max: 440, ticks: { stepSize: 1 } } }
+                scales: {
+                    y: {
+                        suggestedMin: Math.min(...chartDataPower) - 10, // Adding margin for better view
+                        suggestedMax: Math.max(...chartDataPower) + 10, // Adding margin for better view
+                        ticks: {
+                            stepSize: 1
+                        }
+                    }
+                }
             }
         });
 
