@@ -36,9 +36,7 @@
       100% { opacity: 1; }
     }
 
-    .animate-blink {
-      animation: blink 1s infinite;
-    }
+    .animate-blink { animation: blink 1s infinite; }
 
     .elementor-section { @apply w-full; }
     .elementor-container { @apply container mx-auto flex flex-wrap items-center; }
@@ -130,12 +128,7 @@
       type: "line",
       data: {
         labels: chartLabels,
-        datasets: [{
-          label: "Average Voltage",
-          data: chartDataVoltage,
-          borderColor: "blue",
-          fill: false
-        }]
+        datasets: [{ label: "Average Voltage", data: chartDataVoltage, borderColor: "blue", fill: false }]
       },
       options: {
         responsive: true,
@@ -154,12 +147,7 @@
       type: "line",
       data: {
         labels: chartLabels,
-        datasets: [{
-          label: "Average Current",
-          data: chartDataCurrent,
-          borderColor: "orange",
-          fill: false
-        }]
+        datasets: [{ label: "Average Current", data: chartDataCurrent, borderColor: "orange", fill: false }]
       },
       options: {
         responsive: true,
@@ -178,12 +166,7 @@
       type: "line",
       data: {
         labels: chartLabels,
-        datasets: [{
-          label: "Total Power",
-          data: chartDataPower,
-          borderColor: "green",
-          fill: false
-        }]
+        datasets: [{ label: "Total Power", data: chartDataPower, borderColor: "green", fill: false }]
       },
       options: {
         responsive: true,
@@ -206,18 +189,40 @@
       type: "line",
       data: {
         labels: metricChartLabels,
-        datasets: [{
-          label: "Selected Metric",
-          data: metricChartData,
-          borderColor: "purple",
-          fill: false
-        }]
+        datasets: [{ label: "Selected Metric", data: metricChartData, borderColor: "purple", fill: false }]
       },
       options: {
         responsive: true,
         plugins: { legend: { position: "top" }, title: { display: false } }
       }
     });
+
+    /* ------------------ Sections + visibility helpers ------------------ */
+    const metricSection  = document.getElementById("metricSection");
+    const voltageSection = document.getElementById("voltageSection");
+    const currentSection = document.getElementById("currentSection");
+    const powerSection   = document.getElementById("powerSection");
+
+    function isPressureMetric(name) {
+      if (!name) return false;
+      return name.toLowerCase().includes("pressure");
+    }
+
+    function updateChartVisibility() {
+      const showMetricOnly = isPressureMetric(selectedMetric);
+
+      metricSection.classList.toggle("hidden", !showMetricOnly);
+      voltageSection.classList.toggle("hidden",  showMetricOnly);
+      currentSection.classList.toggle("hidden",  showMetricOnly);
+      powerSection.classList.toggle("hidden",    showMetricOnly);
+
+      if (!showMetricOnly) {
+        // clear metric chart when hidden so it doesn't accumulate invisible data
+        metricChartLabels.length = 0;
+        metricChartData.length = 0;
+        chartMetric.update();
+      }
+    }
 
     async function loadPaths() {
       const rootRef = ref(database);
@@ -233,6 +238,9 @@
         });
         if (paths.length > 0) {
           pathSelector.value = paths[0];
+          // default: show standard charts
+          selectedMetric = "__ALL__";
+          updateChartVisibility();
           loadData(paths[0]);
         }
       }
@@ -240,7 +248,6 @@
 
     function rebuildMetricListFromData(data) {
       const keys = Object.keys(data || {}).filter(k => k !== "Timestamp");
-
       metricSelector.innerHTML = `<option value="__ALL__">All</option>`;
 
       const known = new Set(fields);
@@ -263,6 +270,9 @@
 
       document.getElementById("metricChartTitle").textContent =
         selectedMetric === "__ALL__" ? "Selected Metric" : selectedMetric;
+
+      // keep visibility synced after rebuilding options
+      updateChartVisibility();
     }
 
     function updateCards(data) {
@@ -295,7 +305,7 @@
         cardsContainer.appendChild(card);
       });
 
-      // Limit status card (unchanged)
+      // Limit status card
       const limit = limits[lastPath] || null;
       let statusColor = 'bg-gray-100';
       let statusTextColor = 'text-gray-800';
@@ -354,7 +364,6 @@
           return;
         }
 
-        // Refresh metric list based on the current path's keys
         rebuildMetricListFromData(data);
 
         currentData = data;
@@ -362,6 +371,7 @@
 
         const timestamp = new Date().toLocaleTimeString("en-PK", { timeZone: "Asia/Karachi" });
 
+        // Standard charts always update (they may be hidden if pressure is selected)
         if (chartLabels.length > 50) {
           chartLabels.shift();
           chartDataVoltage.shift();
@@ -376,31 +386,37 @@
         chartCurrent.update();
         chartPower.update();
 
-        // Update selected metric chart (only if a single metric is chosen)
-        const chosen = selectedMetric !== "__ALL__" ? data[selectedMetric] : null;
-        if (chosen !== null && chosen !== undefined) {
-          if (metricChartLabels.length > 50) {
-            metricChartLabels.shift();
-            metricChartData.shift();
-          }
-          metricChartLabels.push(timestamp);
-          metricChartData.push(Number(chosen) || 0);
-          chartMetric.data.datasets[0].label = selectedMetric;
-          chartMetric.update();
+        // Update metric chart only when a pressure metric is selected
+        if (isPressureMetric(selectedMetric)) {
+          const chosen = data[selectedMetric];
+          if (chosen !== null && chosen !== undefined) {
+            if (metricChartLabels.length > 50) {
+              metricChartLabels.shift();
+              metricChartData.shift();
+            }
+            metricChartLabels.push(timestamp);
+            metricChartData.push(Number(chosen) || 0);
+            chartMetric.data.datasets[0].label = selectedMetric;
+            chartMetric.update();
 
-          document.getElementById("metricChartTitle").textContent = selectedMetric;
+            document.getElementById("metricChartTitle").textContent = selectedMetric;
+          }
         }
       });
     }
 
     pathSelector.addEventListener("change", () => {
       const newPath = pathSelector.value;
-      // Reset selected metric chart when switching paths
+
+      // reset metric state on path change
       metricChartLabels.length = 0;
       metricChartData.length = 0;
       chartMetric.data.datasets[0].label = "Selected Metric";
       chartMetric.update();
+
       selectedMetric = "__ALL__";
+      updateChartVisibility();
+
       loadData(newPath);
     });
 
@@ -417,13 +433,12 @@
         selectedMetric === "__ALL__" ? "Selected Metric" : selectedMetric;
 
       if (currentData) updateCards(currentData);
+
+      updateChartVisibility();
     });
 
     function updateClock() {
-      const now = new Date().toLocaleString("en-PK", {
-        timeZone: "Asia/Karachi",
-        hour12: true
-      });
+      const now = new Date().toLocaleString("en-PK", { timeZone: "Asia/Karachi", hour12: true });
       clockEl.textContent = now;
     }
 
@@ -517,7 +532,7 @@
       <label for="pathSelector" class="font-semibold">select section:</label>
       <select id="pathSelector" class="text-black p-1 rounded"></select>
 
-      <!-- NEW: Metric selector -->
+      <!-- Metric selector -->
       <label for="metricSelector" class="font-semibold ml-3">metric:</label>
       <select id="metricSelector" class="text-black p-1 rounded">
         <option value="__ALL__">All</option>
@@ -538,7 +553,7 @@
     <section id="cards" class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8"></section>
 
     <!-- Selected Metric Chart -->
-    <section class="bg-white rounded-xl shadow-md p-4 mb-8">
+    <section id="metricSection" class="bg-white rounded-xl shadow-md p-4 mb-8 hidden">
       <h2 class="text-center text-lg font-bold mb-2">
         <span id="metricChartTitle">Selected Metric</span> Over Time
       </h2>
@@ -546,19 +561,19 @@
     </section>
 
     <!-- Line Chart Section for Voltage -->
-    <section class="bg-white rounded-xl shadow-md p-4 mb-8">
+    <section id="voltageSection" class="bg-white rounded-xl shadow-md p-4 mb-8">
       <h2 class="text-center text-lg font-bold mb-2">Voltage Over Time</h2>
       <canvas id="voltageChart" height="100"></canvas>
     </section>
 
     <!-- Line Chart Section for Current -->
-    <section class="bg-white rounded-xl shadow-md p-4 mb-8">
+    <section id="currentSection" class="bg-white rounded-xl shadow-md p-4 mb-8">
       <h2 class="text-center text-lg font-bold mb-2">Current Over Time</h2>
       <canvas id="currentChart" height="100"></canvas>
     </section>
 
     <!-- Line Chart Section for Power -->
-    <section class="bg-white rounded-xl shadow-md p-4">
+    <section id="powerSection" class="bg-white rounded-xl shadow-md p-4">
       <h2 class="text-center text-lg font-bold mb-2">Power Over Time</h2>
       <canvas id="powerChart" height="100"></canvas>
     </section>
