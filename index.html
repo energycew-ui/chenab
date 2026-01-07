@@ -5,10 +5,10 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Smart Energy Dashboard</title>
+
   <script src="https://unpkg.com/feather-icons"></script>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" />
 
   <style>
     .card:hover {
@@ -16,40 +16,9 @@
       transition: all 0.3s ease;
       box-shadow: 0 10px 20px rgba(0, 0, 0, 0.15);
     }
-
     body {
-      font-size: 1.06rem;
-      background-image: url('https://chenabengineering.com/wp-content/uploads/2023/06/istockphoto-1147790557-612x612-1.jpg');
-      background-size: cover;
-      background-position: center;
-      background-attachment: fixed;
-      background-repeat: no-repeat;
+      background: #f4f6f8;
     }
-
-    h1, h2, h3, h4, h5, h6 {
-      font-size: 1.25rem;
-    }
-
-    @keyframes blink {
-      0% { opacity: 1; }
-      50% { opacity: 0.5; }
-      100% { opacity: 1; }
-    }
-
-    .animate-blink { animation: blink 1s infinite; }
-
-    .elementor-section { @apply w-full; }
-    .elementor-container { @apply container mx-auto flex flex-wrap items-center; }
-    .elementor-column { @apply flex flex-col; }
-    .elementor-col-100 { @apply w-full; }
-    .elementor-col-50 { @apply w-full md:w-1/2; }
-    .elementor-widget-wrap { @apply flex flex-col; }
-    .elementor-hidden-mobile { @apply hidden md:flex; }
-    .elementor-icon-list-items { @apply flex flex-wrap gap-4; }
-    .elementor-icon-list-item { @apply flex items-center; }
-    .elementor-icon-list-icon { @apply mr-2; }
-    .elementor-icon-list-text { @apply text-gray-800; }
-    .elementor-widget-container img { @apply h-auto max-w-[200px]; }
   </style>
 
   <script type="module">
@@ -60,28 +29,42 @@
       apiKey: "AIzaSyApTAM7ZAvxHBDjVNFe7ARN5iNtshA8TFQ",
       authDomain: "energy-monitoring-chenab-60e72.firebaseapp.com",
       databaseURL: "https://energy-monitoring-chenab-60e72-default-rtdb.firebaseio.com/",
-      projectId: "energy-monitoring-chenab-60e72",
-      storageBucket: "energy-monitoring-chenab-60e72.appspot.com"
+      projectId: "energy-monitoring-chenab-60e72"
     };
 
     const app = initializeApp(firebaseConfig);
     const database = getDatabase(app);
 
+    /* ===================== FIELDS ===================== */
     const fields = [
-      "VOLTAGE_AB", "VOLTAGE_BC", "VOLTAGE_CA", "AVERAGE_PHASE_VOLTAGE", "L1_Voltage", "L2_Voltage", "L3_Voltage",
-      "AVERAGE_VOLTAGE", "current_phase_1", "current_phase_2", "current_phase_3", "Average_current", "POWER_PHASE_A",
-      "POWER_PHASE_B", "POWER_PHASE_C", "TOTAL_POWER", "FREQUENCY", "PowerFactorTotal", "TotalKWh", "Timestamp"
-    ];
+      "VOLTAGE_AB","VOLTAGE_BC","VOLTAGE_CA",
+      "AVERAGE_PHASE_VOLTAGE",
+      "L1_Voltage","L2_Voltage","L3_Voltage",
+      "AVERAGE_VOLTAGE",
+      "current_phase_1","current_phase_2","current_phase_3",
+      "Average_current",
 
-    const chartLabels = [];
-    const chartDataVoltage = [];
-    const chartDataCurrent = [];
-    const chartDataPower = [];
+      /* ===== MDI ADDED ===== */
+      "Present_Demand_kW_15min",
+      "Maximum_Demand_MDI_kW",
+
+      "POWER_PHASE_A","POWER_PHASE_B","POWER_PHASE_C",
+      "TOTAL_POWER",
+      "FREQUENCY",
+      "PowerFactorTotal",
+      "TotalKWh",
+
+      /* ===== MDI INFO ===== */
+      "Last_MDI_Reset_Time",
+      "MDI_Reset_Schedule",
+
+      "Timestamp"
+    ];
 
     const icons = {
       "AVERAGE_PHASE_VOLTAGE": "zap",
       "AVERAGE_VOLTAGE": "zap",
-      "Average_current": "trending-up",
+      "Average_current": "activity",
       "FREQUENCY": "refresh-cw",
       "L1_Voltage": "zap",
       "L2_Voltage": "zap",
@@ -90,518 +73,125 @@
       "POWER_PHASE_B": "battery-charging",
       "POWER_PHASE_C": "battery-charging",
       "PowerFactorTotal": "percent",
-      "TOTAL_POWER": "battery-charging",
-      "TotalKWh": "battery",
+      "TOTAL_POWER": "battery",
+      "TotalKWh": "database",
       "VOLTAGE_AB": "zap",
       "VOLTAGE_BC": "zap",
       "VOLTAGE_CA": "zap",
-      "current_phase_1": "trending-up",
-      "current_phase_2": "trending-up",
-      "current_phase_3": "trending-up"
+      "current_phase_1": "activity",
+      "current_phase_2": "activity",
+      "current_phase_3": "activity",
+
+      /* ===== MDI ICONS ===== */
+      "Present_Demand_kW_15min": "activity",
+      "Maximum_Demand_MDI_kW": "trending-up",
+      "Last_MDI_Reset_Time": "clock",
+      "MDI_Reset_Schedule": "calendar"
     };
 
     const fieldColors = {
-      "AVERAGE_PHASE_VOLTAGE": "bg-blue-100", "AVERAGE_VOLTAGE": "bg-blue-100", "Average_current": "bg-yellow-100",
-      "FREQUENCY": "bg-indigo-400", "L1_Voltage": "bg-blue-100", "L2_Voltage": "bg-blue-100", "L3_Voltage": "bg-blue-100",
-      "POWER_PHASE_A": "bg-orange-100", "POWER_PHASE_B": "bg-orange-100", "POWER_PHASE_C": "bg-orange-100",
-      "PowerFactorTotal": "bg-green-200", "TOTAL_POWER": "bg-orange-100", "TotalKWh": "bg-red-500", "VOLTAGE_AB": "bg-blue-100",
-      "VOLTAGE_BC": "bg-blue-100", "VOLTAGE_CA": "bg-blue-100", "current_phase_1": "bg-yellow-100",
-      "current_phase_2": "bg-yellow-100", "current_phase_3": "bg-yellow-100"
+      "AVERAGE_PHASE_VOLTAGE": "bg-blue-100",
+      "AVERAGE_VOLTAGE": "bg-blue-100",
+      "Average_current": "bg-yellow-100",
+      "FREQUENCY": "bg-indigo-100",
+      "L1_Voltage": "bg-blue-100",
+      "L2_Voltage": "bg-blue-100",
+      "L3_Voltage": "bg-blue-100",
+      "POWER_PHASE_A": "bg-orange-100",
+      "POWER_PHASE_B": "bg-orange-100",
+      "POWER_PHASE_C": "bg-orange-100",
+      "TOTAL_POWER": "bg-orange-100",
+      "PowerFactorTotal": "bg-green-100",
+      "TotalKWh": "bg-red-100",
+      "VOLTAGE_AB": "bg-blue-100",
+      "VOLTAGE_BC": "bg-blue-100",
+      "VOLTAGE_CA": "bg-blue-100",
+      "current_phase_1": "bg-yellow-100",
+      "current_phase_2": "bg-yellow-100",
+      "current_phase_3": "bg-yellow-100",
+
+      /* ===== MDI COLORS ===== */
+      "Present_Demand_kW_15min": "bg-purple-100",
+      "Maximum_Demand_MDI_kW": "bg-red-200",
+      "Last_MDI_Reset_Time": "bg-gray-200",
+      "MDI_Reset_Schedule": "bg-gray-100"
     };
 
     const cardsContainer = document.getElementById("cards");
     const pathSelector = document.getElementById("pathSelector");
-    const metricSelector = document.getElementById("metricSelector");
-    const clockEl = document.getElementById("clock");
-    const currentPathEl = document.getElementById("currentPath");
 
     let lastPath = null;
-    let currentData = null;
-    let selectedMetric = "__ALL__";
-    const limits = {};
-
-    const chartVoltageCtx = document.getElementById("voltageChart").getContext("2d");
-    const chartCurrentCtx = document.getElementById("currentChart").getContext("2d");
-    const chartPowerCtx = document.getElementById("powerChart").getContext("2d");
-
-    const chartVoltage = new Chart(chartVoltageCtx, {
-      type: "line",
-      data: {
-        labels: chartLabels,
-        datasets: [{ label: "Average Voltage", data: chartDataVoltage, borderColor: "blue", fill: false }]
-      },
-      options: {
-        responsive: true,
-        plugins: { legend: { position: "top" }, title: { display: true, text: "Voltage Over Time" } },
-        scales: {
-          y: {
-            suggestedMin: Math.min(...chartDataVoltage) - 10,
-            suggestedMax: Math.max(...chartDataVoltage) + 10,
-            ticks: { stepSize: 1 }
-          }
-        }
-      }
-    });
-
-    const chartCurrent = new Chart(chartCurrentCtx, {
-      type: "line",
-      data: {
-        labels: chartLabels,
-        datasets: [{ label: "Average Current", data: chartDataCurrent, borderColor: "orange", fill: false }]
-      },
-      options: {
-        responsive: true,
-        plugins: { legend: { position: "top" }, title: { display: true, text: "Current Over Time" } },
-        scales: {
-          y: {
-            suggestedMin: Math.min(...chartDataCurrent) - 10,
-            suggestedMax: Math.max(...chartDataCurrent) + 10,
-            ticks: { stepSize: 1 }
-          }
-        }
-      }
-    });
-
-    const chartPower = new Chart(chartPowerCtx, {
-      type: "line",
-      data: {
-        labels: chartLabels,
-        datasets: [{ label: "Total Power", data: chartDataPower, borderColor: "green", fill: false }]
-      },
-      options: {
-        responsive: true,
-        plugins: { legend: { position: "top" }, title: { display: true, text: "Power Over Time" } },
-        scales: {
-          y: {
-            suggestedMin: Math.min(...chartDataPower) - 10,
-            suggestedMax: Math.max(...chartDataPower) + 10,
-            ticks: { stepSize: 1 }
-          }
-        }
-      }
-    });
-
-    /* ------------------ Selected Metric chart ------------------ */
-    const chartMetricCtx = document.getElementById("metricChart").getContext("2d");
-    const metricChartLabels = [];
-    const metricChartData = [];
-    const chartMetric = new Chart(chartMetricCtx, {
-      type: "line",
-      data: {
-        labels: metricChartLabels,
-        datasets: [{ label: "Selected Metric", data: metricChartData, borderColor: "purple", fill: false }]
-      },
-      options: {
-        responsive: true,
-        plugins: { legend: { position: "top" }, title: { display: false } }
-      }
-    });
-
-    /* ------------------ Sections + visibility helpers ------------------ */
-    const metricSection  = document.getElementById("metricSection");
-    const voltageSection = document.getElementById("voltageSection");
-    const currentSection = document.getElementById("currentSection");
-    const powerSection   = document.getElementById("powerSection");
-
-    function isPressureMetric(name) {
-      if (!name) return false;
-      return name.toLowerCase().includes("pressure");
-    }
-
-    function updateChartVisibility() {
-      const showMetricOnly = isPressureMetric(selectedMetric);
-
-      metricSection.classList.toggle("hidden", !showMetricOnly);
-      voltageSection.classList.toggle("hidden",  showMetricOnly);
-      currentSection.classList.toggle("hidden",  showMetricOnly);
-      powerSection.classList.toggle("hidden",    showMetricOnly);
-
-      if (!showMetricOnly) {
-        // clear metric chart when hidden so it doesn't accumulate invisible data
-        metricChartLabels.length = 0;
-        metricChartData.length = 0;
-        chartMetric.update();
-      }
-    }
-
-    async function loadPaths() {
-      const rootRef = ref(database);
-      const snapshot = await get(rootRef);
-      if (snapshot.exists()) {
-        const paths = Object.keys(snapshot.val());
-        pathSelector.innerHTML = "";
-        paths.forEach(p => {
-          const option = document.createElement("option");
-          option.value = p;
-          option.textContent = p;
-          pathSelector.appendChild(option);
-        });
-        if (paths.length > 0) {
-          pathSelector.value = paths[0];
-          // default: show standard charts
-          selectedMetric = "__ALL__";
-          updateChartVisibility();
-          loadData(paths[0]);
-        }
-      }
-    }
-
-    function rebuildMetricListFromData(data) {
-      const keys = Object.keys(data || {}).filter(k => k !== "Timestamp");
-      metricSelector.innerHTML = `<option value="__ALL__">All</option>`;
-
-      const known = new Set(fields);
-      const ordered = [
-        ...fields.filter(f => keys.includes(f)),
-        ...keys.filter(k => !known.has(k))
-      ];
-
-      ordered.forEach(k => {
-        const opt = document.createElement("option");
-        opt.value = k;
-        opt.textContent = k;
-        metricSelector.appendChild(opt);
-      });
-
-      if (![...metricSelector.options].some(o => o.value === selectedMetric)) {
-        selectedMetric = "__ALL__";
-      }
-      metricSelector.value = selectedMetric;
-
-      document.getElementById("metricChartTitle").textContent =
-        selectedMetric === "__ALL__" ? "Selected Metric" : selectedMetric;
-
-      // keep visibility synced after rebuilding options
-      updateChartVisibility();
-    }
 
     function updateCards(data) {
       cardsContainer.innerHTML = "";
 
-      const keysToShow = selectedMetric === "__ALL__"
-        ? fields.filter(f => f !== "Timestamp" && data[f] !== undefined)
-        : (data[selectedMetric] !== undefined ? [selectedMetric] : []);
+      fields.forEach(field => {
+        if (data[field] === undefined) return;
 
-      keysToShow.forEach(field => {
-        const value = data[field];
-        const bgColor = fieldColors[field] || "bg-white";
-        const icon = icons[field] || "box";
         const card = document.createElement("div");
-        card.className = `card p-4 ${bgColor} rounded-2xl shadow-md text-center`;
+        card.className = `card p-4 rounded-xl shadow ${fieldColors[field] || "bg-white"} text-center`;
+
         card.innerHTML = `
-          <div class="flex items-center justify-center mb-2">
-            <i data-feather="${icon}" class="w-5 h-5 mr-2"></i>
-            <h2 class="text-sm font-bold text-gray-700">${field}</h2>
+          <div class="flex justify-center mb-1">
+            <i data-feather="${icons[field] || 'box'}"></i>
           </div>
-          <p class="text-xl font-semibold text-gray-800">
-            ${value}
-            ${field === "VOLTAGE_AB" || field === "VOLTAGE_BC" || field === "VOLTAGE_CA" || field === "AVERAGE_VOLTAGE" || field === "L1_Voltage" || field === "L2_Voltage" || field === "L3_Voltage" ? 'V' : ''}
-            ${field === "current_phase_1" || field === "current_phase_2" || field === "current_phase_3" || field === "Average_current" ? 'A' : ''}
-            ${field === "POWER_PHASE_A" || field === "POWER_PHASE_B" || field === "POWER_PHASE_C" || field === "TOTAL_POWER" ? 'KW' : ''}
-            ${field === "TotalKWh" ? 'kWh' : ''}
-            ${field === "FREQUENCY" ? 'Hz' : ''}
+          <h2 class="text-sm font-bold">${field}</h2>
+          <p class="text-xl font-semibold">
+            ${data[field]}
+            ${["VOLTAGE_AB","VOLTAGE_BC","VOLTAGE_CA","AVERAGE_VOLTAGE","L1_Voltage","L2_Voltage","L3_Voltage"].includes(field) ? " V" : ""}
+            ${["current_phase_1","current_phase_2","current_phase_3","Average_current"].includes(field) ? " A" : ""}
+            ${["POWER_PHASE_A","POWER_PHASE_B","POWER_PHASE_C","TOTAL_POWER","Present_Demand_kW_15min","Maximum_Demand_MDI_kW"].includes(field) ? " kW" : ""}
+            ${field === "TotalKWh" ? " kWh" : ""}
+            ${field === "FREQUENCY" ? " Hz" : ""}
           </p>
         `;
         cardsContainer.appendChild(card);
       });
 
-      // Limit status card
-      const limit = limits[lastPath] || null;
-      let statusColor = 'bg-gray-100';
-      let statusTextColor = 'text-gray-800';
-      let statusValue = 'No limit set';
-      let icon = 'info';
-
-      if (limit !== null) {
-        const current = data.Average_current || 0;
-        const isExceeded = current > limit;
-        if (isExceeded) {
-          statusColor = 'bg-red-500 animate-blink';
-          statusTextColor = 'text-white';
-          statusValue = 'Exceeded!';
-          icon = 'alert-triangle';
-        } else {
-          statusColor = 'bg-green-100';
-          statusTextColor = 'text-green-800';
-          statusValue = 'Normal';
-          icon = 'check-circle';
-        }
-      }
-
-      const statusCard = document.createElement("div");
-      statusCard.className = `card p-4 ${statusColor} rounded-2xl shadow-md text-center ${statusTextColor}`;
-      statusCard.innerHTML = `
-        <div class="flex items-center justify-center mb-2">
-          <i data-feather="${icon}" class="w-5 h-5 mr-2"></i>
-          <h2 class="text-sm font-bold">Current Limit Status</h2>
-        </div>
-        <p class="text-xl font-semibold">${statusValue}</p>
-      `;
-      cardsContainer.appendChild(statusCard);
-
       feather.replace();
     }
 
     function loadData(path) {
-      document.getElementById("currentPath").textContent = path;
-
-      if (lastPath) {
-        const oldRef = ref(database, lastPath);
-        off(oldRef);
-      }
-
+      if (lastPath) off(ref(database, lastPath));
       lastPath = path;
-      const dbRef = ref(database, path);
-      onValue(dbRef, (snapshot) => {
-        const data = snapshot.val();
 
-        if (!data) {
-          cardsContainer.innerHTML = "";
-          const msg = document.createElement("p");
-          msg.textContent = `❌ No data found for "${path}"`;
-          msg.className = "text-center text-red-600 font-semibold col-span-4";
-          cardsContainer.appendChild(msg);
-          return;
-        }
-
-        rebuildMetricListFromData(data);
-
-        currentData = data;
+      onValue(ref(database, path), snap => {
+        const data = snap.val();
+        if (!data) return;
         updateCards(data);
-
-        const timestamp = new Date().toLocaleTimeString("en-PK", { timeZone: "Asia/Karachi" });
-
-        // Standard charts always update (they may be hidden if pressure is selected)
-        if (chartLabels.length > 50) {
-          chartLabels.shift();
-          chartDataVoltage.shift();
-          chartDataCurrent.shift();
-          chartDataPower.shift();
-        }
-        chartLabels.push(timestamp);
-        chartDataVoltage.push(data.AVERAGE_PHASE_VOLTAGE || 0);
-        chartDataCurrent.push(data.Average_current || 0);
-        chartDataPower.push(data.TOTAL_POWER || 0);
-        chartVoltage.update();
-        chartCurrent.update();
-        chartPower.update();
-
-        // Update metric chart only when a pressure metric is selected
-        if (isPressureMetric(selectedMetric)) {
-          const chosen = data[selectedMetric];
-          if (chosen !== null && chosen !== undefined) {
-            if (metricChartLabels.length > 50) {
-              metricChartLabels.shift();
-              metricChartData.shift();
-            }
-            metricChartLabels.push(timestamp);
-            metricChartData.push(Number(chosen) || 0);
-            chartMetric.data.datasets[0].label = selectedMetric;
-            chartMetric.update();
-
-            document.getElementById("metricChartTitle").textContent = selectedMetric;
-          }
-        }
       });
     }
 
-    pathSelector.addEventListener("change", () => {
-      const newPath = pathSelector.value;
-
-      // reset metric state on path change
-      metricChartLabels.length = 0;
-      metricChartData.length = 0;
-      chartMetric.data.datasets[0].label = "Selected Metric";
-      chartMetric.update();
-
-      selectedMetric = "__ALL__";
-      updateChartVisibility();
-
-      loadData(newPath);
-    });
-
-    metricSelector.addEventListener("change", () => {
-      selectedMetric = metricSelector.value;
-
-      // reset metric chart series when changing metric
-      metricChartLabels.length = 0;
-      metricChartData.length = 0;
-      chartMetric.data.datasets[0].label = (selectedMetric === "__ALL__" ? "Selected Metric" : selectedMetric);
-      chartMetric.update();
-
-      document.getElementById("metricChartTitle").textContent =
-        selectedMetric === "__ALL__" ? "Selected Metric" : selectedMetric;
-
-      if (currentData) updateCards(currentData);
-
-      updateChartVisibility();
-    });
-
-    function updateClock() {
-      const now = new Date().toLocaleString("en-PK", { timeZone: "Asia/Karachi", hour12: true });
-      clockEl.textContent = now;
+    async function loadPaths() {
+      const snap = await get(ref(database));
+      const paths = Object.keys(snap.val() || {});
+      paths.forEach(p => {
+        const o = document.createElement("option");
+        o.value = p;
+        o.textContent = p;
+        pathSelector.appendChild(o);
+      });
+      if (paths.length) loadData(paths[0]);
     }
 
-    const limitModal = document.getElementById('limitModal');
-    const limitInput = document.getElementById('limitInput');
-    const saveLimitBtn = document.getElementById('saveLimitBtn');
-    const cancelLimitBtn = document.getElementById('cancelLimitBtn');
-    const setLimitBtn = document.getElementById('setLimitBtn');
-
-    setLimitBtn.addEventListener('click', () => {
-      const path = lastPath;
-      limitInput.value = limits[path] || '';
-      limitModal.classList.remove('hidden');
-    });
-
-    cancelLimitBtn.addEventListener('click', () => {
-      limitModal.classList.add('hidden');
-    });
-
-    saveLimitBtn.addEventListener('click', () => {
-      const path = lastPath;
-      limits[path] = parseFloat(limitInput.value);
-      limitModal.classList.add('hidden');
-      if (currentData) updateCards(currentData);
-    });
-
-    setInterval(updateClock, 1000);
-    updateClock();
+    pathSelector.addEventListener("change", () => loadData(pathSelector.value));
     loadPaths();
   </script>
 </head>
 
-<body class="text-gray-800">
-  <!-- Logo and Contact Info Section -->
-  <section class="elementor-section elementor-top-section elementor-element elementor-element-54fb42c2 elementor-hidden-mobile elementor-section-boxed elementor-section-height-default bg-white py-2" data-id="54fb42c2" data-element_type="section">
-    <div class="elementor-container elementor-column-gap-default flex justify-between items-center">
-      <div class="elementor-column elementor-col-50 elementor-inner-column elementor-element elementor-element-1282328d" data-id="1282328d" data-element_type="column">
-        <div class="elementor-widget-wrap elementor-element-populated">
-          <div class="elementor-element elementor-element-6813c628 elementor-widget elementor-widget-image" data-id="6813c628" data-element_type="widget" data-widget_type="image.default">
-            <div class="elementor-widget-container">
-              <a href="https://chenabengineering.com">
-                <img fetchpriority="high" width="2560" height="606" src="https://chenabengineering.com/wp-content/uploads/2023/06/chenab-logo-1-scaled.png" class="attachment-full size-full wp-image-19" alt="Chenab Engineering works Logo" srcset="https://chenabengineering.com/wp-content/uploads/2023/06/chenab-logo-1-scaled.png 2560w, https://chenabengineering.com/wp-content/uploads/2023/06/chenab-logo-1-1024x243.png 1024w, https://chenabengineering.com/wp-content/uploads/2023/06/chenab-logo-1-300x71.png 300w, https://chenabengineering.com/wp-content/uploads/2023/06/chenab-logo-1-768x182.png 768w, https://chenabengineering.com/wp-content/uploads/2023/06/chenab-logo-1-1536x364.png 1536w, https://chenabengineering.com/wp-content/uploads/2023/06/chenab-logo-1-2048x485.png 2048w, https://chenabengineering.com/wp-content/uploads/2023/06/chenab-logo-1-600x142.png 600w" sizes="(max-width: 2560px) 100vw, 2560px">
-              </a>
-            </div>
-          </div>
-        </div>
-      </div>
-      <div class="elementor-column elementor-col-50 elementor-inner-column elementor-element elementor-element-125b9dea elementor-hidden-mobile justify-end" data-id="125b9dea" data-element_type="column">
-        <div class="elementor-widget-wrap elementor-element-populated">
-          <div class="elementor-element elementor-element-45fd0a91 elementor-icon-list--layout-inline elementor-align-right elementor-list-item-link-full_width elementor-widget elementor-widget-icon-list" data-id="45fd0a91" data-element_type="widget" data-widget_type="icon-list.default">
-            <div class="elementor-widget-container">
-              <ul class="elementor-icon-list-items elementor-inline-items">
-                <li class="elementor-icon-list-item elementor-inline-item">
-                  <a href="tel:+92302793059,+923097772868">
-                    <span class="elementor-icon-list-icon"><i aria-hidden="true" class="fas fa-phone"></i></span>
-                    <span class="elementor-icon-list-text">+923027930594,+923097772868</span>
-                  </a>
-                </li>
-                <li class="elementor-icon-list-item elementor-inline-item">
-                  <a href="mailto:energy.cew@gmail.com">
-                    <span class="elementor-icon-list-icon"><i aria-hidden="true" class="fas fa-envelope"></i></span>
-                    <span class="elementor-icon-list-text">energy.cew@gmail.com</span>
-                  </a>
-                </li>
-              </ul>
-            </div>
-          </div>
-          <div class="elementor-element elementor-element-dfac8b8 elementor-icon-list--layout-inline elementor-align-right elementor-list-item-link-full_width elementor-widget elementor-widget-icon-list" data-id="dfac8b8" data-element_type="widget" data-widget_type="icon-list.default">
-            <div class="elementor-widget-container">
-              <ul class="elementor-icon-list-items elementor-inline-items">
-                <li class="elementor-icon-list-item elementor-inline-item">
-                  <span class="elementor-icon-list-text"><b>For Queries & Marketing:</b></span>
-                </li>
-                <li class="elementor-icon-list-item elementor-inline-item">
-                  <a href="mailto:energy.cew@gmail.com">
-                    <span class="elementor-icon-list-icon"><i aria-hidden="true" class="fas fa-envelope"></i></span>
-                    <span class="elementor-icon-list-text">energy.cew@gmail.com</span>
-                  </a>
-                </li>
-              </ul>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </section>
+<body>
 
-  <!-- Header -->
-  <header class="bg-green-700 text-white p-4 flex justify-between items-center">
-    <div class="flex items-center gap-4">
-      <label for="pathSelector" class="font-semibold">select section:</label>
-      <select id="pathSelector" class="text-black p-1 rounded"></select>
-
-      <!-- Metric selector -->
-      <label for="metricSelector" class="font-semibold ml-3">metric:</label>
-      <select id="metricSelector" class="text-black p-1 rounded">
-        <option value="__ALL__">All</option>
-      </select>
-    </div>
-    <h1 class="text-xl font-bold text-center flex-1">Smart Energy Dashboard</h1>
-    <div id="clock" class="text-sm font-semibold"></div>
-  </header>
-
-  <!-- Selected Path Name Display -->
-  <div class="bg-white shadow p-2 text-green-800 font-semibold text-lg flex justify-between items-center" id="selectedPathDisplay">
-    <span id="currentPath">Loading...</span>
-    <button id="setLimitBtn" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-1 px-3 rounded">Set Limit</button>
+<header class="bg-green-700 text-white p-4 flex justify-between items-center">
+  <div>
+    <label>Select Section:</label>
+    <select id="pathSelector" class="text-black p-1 rounded"></select>
   </div>
+  <h1 class="font-bold text-lg">Smart Energy Dashboard</h1>
+</header>
 
-  <!-- Main Content -->
-  <main class="p-4 container mx-auto">
-    <section id="cards" class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8"></section>
+<main class="p-4 max-w-7xl mx-auto">
+  <section id="cards" class="grid grid-cols-2 md:grid-cols-4 gap-4"></section>
+</main>
 
-    <!-- Selected Metric Chart -->
-    <section id="metricSection" class="bg-white rounded-xl shadow-md p-4 mb-8 hidden">
-      <h2 class="text-center text-lg font-bold mb-2">
-        <span id="metricChartTitle">Selected Metric</span> Over Time
-      </h2>
-      <canvas id="metricChart" height="100"></canvas>
-    </section>
-
-    <!-- Line Chart Section for Voltage -->
-    <section id="voltageSection" class="bg-white rounded-xl shadow-md p-4 mb-8">
-      <h2 class="text-center text-lg font-bold mb-2">Voltage Over Time</h2>
-      <canvas id="voltageChart" height="100"></canvas>
-    </section>
-
-    <!-- Line Chart Section for Current -->
-    <section id="currentSection" class="bg-white rounded-xl shadow-md p-4 mb-8">
-      <h2 class="text-center text-lg font-bold mb-2">Current Over Time</h2>
-      <canvas id="currentChart" height="100"></canvas>
-    </section>
-
-    <!-- Line Chart Section for Power -->
-    <section id="powerSection" class="bg-white rounded-xl shadow-md p-4">
-      <h2 class="text-center text-lg font-bold mb-2">Power Over Time</h2>
-      <canvas id="powerChart" height="100"></canvas>
-    </section>
-  </main>
-
-  <!-- Modal for Setting Limit -->
-  <div id="limitModal" class="hidden fixed z-10 inset-0 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
-    <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-      <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" aria-hidden="true"></div>
-      <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
-      <div class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
-        <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
-          <div class="sm:flex sm:items-start">
-            <div class="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left">
-              <h3 class="text-lg leading-6 font-medium text-gray-900" id="modal-title">Set Average Current Limit</h3>
-              <div class="mt-2">
-                <input type="number" id="limitInput" class="border border-gray-300 p-2 rounded w-full" placeholder="Enter limit in A">
-              </div>
-            </div>
-          </div>
-        </div>
-        <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
-          <button type="button" id="saveLimitBtn" class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-green-600 text-base font-medium text-white hover:bg-green-700 sm:ml-3 sm:w-auto sm:text-sm">Save</button>
-          <button type="button" id="cancelLimitBtn" class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm">Cancel</button>
-        </div>
-      </div>
-    </div>
-  </div>
 </body>
-
 </html>
