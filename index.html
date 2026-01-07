@@ -4,12 +4,10 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Smart Energy Dashboard</title>
-
 <script src="https://unpkg.com/feather-icons"></script>
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css"/>
-
 <style>
   .card:hover {
     transform: scale(1.05);
@@ -24,7 +22,6 @@
     background-attachment: fixed;
   }
 </style>
-
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getDatabase, ref, onValue, off, get } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
@@ -81,38 +78,60 @@ function initCharts() {
   voltageChart = createChart(
     document.getElementById("voltageChart"),
     "Average Voltage (V)",
-    "blue"
+    "rgb(59, 130, 246)" // blue
   );
   currentChart = createChart(
     document.getElementById("currentChart"),
     "Average Current (A)",
-    "orange"
+    "rgb(251, 146, 60)" // orange
   );
   powerChart = createChart(
     document.getElementById("powerChart"),
     "Total Power (kW)",
-    "green"
+    "rgb(34, 197, 94)" // green
   );
 }
 
 function updateCharts(data) {
   const time = new Date().toLocaleTimeString("en-PK");
-
   if (labels.length > 50) {
     labels.shift();
     voltageChart.data.datasets[0].data.shift();
     currentChart.data.datasets[0].data.shift();
     powerChart.data.datasets[0].data.shift();
   }
-
   labels.push(time);
   voltageChart.data.datasets[0].data.push(data.AVERAGE_VOLTAGE || 0);
   currentChart.data.datasets[0].data.push(data.Average_current || 0);
   powerChart.data.datasets[0].data.push(data.TOTAL_POWER || 0);
-
   voltageChart.update();
   currentChart.update();
   powerChart.update();
+}
+
+/* ================= LIVE VALUE CARDS ================= */
+function updateCards(data) {
+  cards.innerHTML = ""; // Clear existing cards
+
+  const cardData = [
+    { icon: "zap", title: "Average Voltage", value: (data.AVERAGE_VOLTAGE || 0).toFixed(2) + " V", color: "bg-blue-600" },
+    { icon: "activity", title: "Average Current", value: (data.Average_current || 0).toFixed(2) + " A", color: "bg-orange-600" },
+    { icon: "battery-charging", title: "Total Power", value: (data.TOTAL_POWER || 0).toFixed(2) + " kW", color: "bg-green-600" },
+    // Add more cards here if your data has additional keys
+  ];
+
+  cardData.forEach(item => {
+    const card = document.createElement("div");
+    card.className = `card bg-white rounded-xl shadow-lg p-6 text-center ${item.color} text-white`;
+    card.innerHTML = `
+      <i data-feather="${item.icon}" class="w-12 h-12 mx-auto mb-4"></i>
+      <h3 class="text-lg font-semibold">${item.title}</h3>
+      <p class="text-3xl font-bold mt-2">${item.value}</p>
+    `;
+    cards.appendChild(card);
+  });
+
+  feather.replace(); // Re-initialize feather icons
 }
 
 function loadData(p) {
@@ -122,7 +141,9 @@ function loadData(p) {
   onValue(ref(db, p), snap => {
     const d = snap.val();
     if (!d) return;
+
     updateCharts(d);
+    updateCards(d);
   });
 }
 
@@ -156,13 +177,11 @@ window.addEventListener("load", () => {
 });
 </script>
 </head>
-
 <body class="text-gray-800">
-
 <!-- HEADER -->
 <header class="bg-green-700 text-white p-4 flex justify-between items-center">
   <div>
-    <label>Select Section:</label>
+    <label class="mr-2">Select Section:</label>
     <select id="pathSelector" class="text-black p-1 rounded"></select>
   </div>
   <div class="text-center">
@@ -170,31 +189,24 @@ window.addEventListener("load", () => {
     <div id="clock" class="text-sm"></div>
   </div>
 </header>
-
 <main class="p-4 container mx-auto">
-
   <!-- CARDS -->
   <section id="cards" class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8"></section>
-
   <!-- LIVE CHARTS -->
   <section class="grid grid-cols-1 md:grid-cols-3 gap-6">
     <div class="bg-white p-4 rounded-xl shadow">
       <h2 class="text-center font-bold mb-2">Voltage</h2>
       <canvas id="voltageChart"></canvas>
     </div>
-
     <div class="bg-white p-4 rounded-xl shadow">
       <h2 class="text-center font-bold mb-2">Current</h2>
       <canvas id="currentChart"></canvas>
     </div>
-
     <div class="bg-white p-4 rounded-xl shadow">
       <h2 class="text-center font-bold mb-2">Power</h2>
       <canvas id="powerChart"></canvas>
     </div>
   </section>
-
 </main>
-
 </body>
 </html>
