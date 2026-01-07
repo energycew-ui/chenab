@@ -45,8 +45,8 @@
       "Average_current",
 
       /* ===== MDI ADDED ===== */
-      "Present_Demand_kW_15min",
-      "Maximum_Demand_MDI_kW",
+      "Present_Demand",
+      "Maximum_Demand_MDI",
 
       "POWER_PHASE_A","POWER_PHASE_B","POWER_PHASE_C",
       "TOTAL_POWER",
@@ -83,8 +83,8 @@
       "current_phase_3": "activity",
 
       /* ===== MDI ICONS ===== */
-      "Present_Demand_kW_15min": "activity",
-      "Maximum_Demand_MDI_kW": "trending-up",
+      "Present_Demand": "activity",
+      "Maximum_Demand_MDI": "trending-up",
       "Last_MDI_Reset_Time": "clock",
       "MDI_Reset_Schedule": "calendar"
     };
@@ -111,8 +111,8 @@
       "current_phase_3": "bg-yellow-100",
 
       /* ===== MDI COLORS ===== */
-      "Present_Demand_kW_15min": "bg-purple-100",
-      "Maximum_Demand_MDI_kW": "bg-red-200",
+      "Present_Demand": "bg-purple-100",
+      "Maximum_Demand": "bg-red-200",
       "Last_MDI_Reset_Time": "bg-gray-200",
       "MDI_Reset_Schedule": "bg-gray-100"
     };
@@ -140,7 +140,7 @@
             ${data[field]}
             ${["VOLTAGE_AB","VOLTAGE_BC","VOLTAGE_CA","AVERAGE_VOLTAGE","L1_Voltage","L2_Voltage","L3_Voltage"].includes(field) ? " V" : ""}
             ${["current_phase_1","current_phase_2","current_phase_3","Average_current"].includes(field) ? " A" : ""}
-            ${["POWER_PHASE_A","POWER_PHASE_B","POWER_PHASE_C","TOTAL_POWER","Present_Demand_kW_15min","Maximum_Demand_MDI_kW"].includes(field) ? " kW" : ""}
+            ${["POWER_PHASE_A","POWER_PHASE_B","POWER_PHASE_C","TOTAL_POWER","Present_Demand_kW","Maximum_Demand_MDI"].includes(field) ? " kW" : ""}
             ${field === "TotalKWh" ? " kWh" : ""}
             ${field === "FREQUENCY" ? " Hz" : ""}
           </p>
@@ -195,3 +195,4 @@
 
 </body>
 </html>
+
