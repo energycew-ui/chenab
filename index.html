@@ -2,194 +2,193 @@
 <html lang="en">
 
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Smart Energy Dashboard</title>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Smart Energy Dashboard</title>
 
-  <script src="https://unpkg.com/feather-icons"></script>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://unpkg.com/feather-icons"></script>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css"/>
 
-  <style>
-    .card:hover {
-      transform: scale(1.05);
-      transition: all 0.3s ease;
-      box-shadow: 0 10px 20px rgba(0, 0, 0, 0.15);
-    }
-    body {
-      background: #f4f6f8;
-    }
-  </style>
+<style>
+.card:hover{
+  transform:scale(1.05);
+  transition:.3s;
+}
+body{
+  font-size:1.06rem;
+  background-image:url('https://chenabengineering.com/wp-content/uploads/2023/06/istockphoto-1147790557-612x612-1.jpg');
+  background-size:cover;
+  background-position:center;
+  background-attachment:fixed;
+}
+.animate-blink{animation:blink 1s infinite;}
+@keyframes blink{0%{opacity:1}50%{opacity:.5}100%{opacity:1}}
+</style>
 
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-    import { getDatabase, ref, onValue, off, get } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getDatabase, ref, onValue, off, get } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 
-    const firebaseConfig = {
-      apiKey: "AIzaSyApTAM7ZAvxHBDjVNFe7ARN5iNtshA8TFQ",
-      authDomain: "energy-monitoring-chenab-60e72.firebaseapp.com",
-      databaseURL: "https://energy-monitoring-chenab-60e72-default-rtdb.firebaseio.com/",
-      projectId: "energy-monitoring-chenab-60e72"
-    };
+const firebaseConfig = {
+  apiKey: "AIzaSyApTAM7ZAvxHBDjVNFe7ARN5iNtshA8TFQ",
+  authDomain: "energy-monitoring-chenab-60e72.firebaseapp.com",
+  databaseURL: "https://energy-monitoring-chenab-60e72-default-rtdb.firebaseio.com/",
+  projectId: "energy-monitoring-chenab-60e72"
+};
 
-    const app = initializeApp(firebaseConfig);
-    const database = getDatabase(app);
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
 
-    /* ===================== FIELDS ===================== */
-    const fields = [
-      "VOLTAGE_AB","VOLTAGE_BC","VOLTAGE_CA",
-      "AVERAGE_PHASE_VOLTAGE",
-      "L1_Voltage","L2_Voltage","L3_Voltage",
-      "AVERAGE_VOLTAGE",
-      "current_phase_1","current_phase_2","current_phase_3",
-      "Average_current",
+/* ===================== FIELDS ===================== */
+/* ❗ MDI IS ADDED AT THE END ONLY */
+const fields = [
+  "VOLTAGE_AB","VOLTAGE_BC","VOLTAGE_CA",
+  "AVERAGE_PHASE_VOLTAGE",
+  "L1_Voltage","L2_Voltage","L3_Voltage",
+  "AVERAGE_VOLTAGE",
+  "current_phase_1","current_phase_2","current_phase_3",
+  "Average_current",
+  "POWER_PHASE_A","POWER_PHASE_B","POWER_PHASE_C",
+  "TOTAL_POWER",
+  "FREQUENCY",
+  "PowerFactorTotal",
+  "TotalKWh",
 
-      /* ===== MDI ADDED ===== */
-      "Present_Demand_kW_15min",
-      "Maximum_Demand_MDI_kW",
+  /* ===== MDI (LAST ONLY) ===== */
+  "Present_Demand_kW_15min",
+  "Maximum_Demand_MDI_kW",
+  "Last_MDI_Reset_Time",
+  "MDI_Reset_Schedule"
+];
 
-      "POWER_PHASE_A","POWER_PHASE_B","POWER_PHASE_C",
-      "TOTAL_POWER",
-      "FREQUENCY",
-      "PowerFactorTotal",
-      "TotalKWh",
+const icons = {
+  AVERAGE_PHASE_VOLTAGE:"zap",
+  AVERAGE_VOLTAGE:"zap",
+  L1_Voltage:"zap",L2_Voltage:"zap",L3_Voltage:"zap",
+  VOLTAGE_AB:"zap",VOLTAGE_BC:"zap",VOLTAGE_CA:"zap",
+  current_phase_1:"activity",current_phase_2:"activity",current_phase_3:"activity",
+  Average_current:"activity",
+  POWER_PHASE_A:"battery-charging",POWER_PHASE_B:"battery-charging",POWER_PHASE_C:"battery-charging",
+  TOTAL_POWER:"battery",
+  FREQUENCY:"refresh-cw",
+  PowerFactorTotal:"percent",
+  TotalKWh:"database",
 
-      /* ===== MDI INFO ===== */
-      "Last_MDI_Reset_Time",
-      "MDI_Reset_Schedule",
+  /* MDI */
+  Present_Demand_kW_15min:"activity",
+  Maximum_Demand_MDI_kW:"trending-up",
+  Last_MDI_Reset_Time:"clock",
+  MDI_Reset_Schedule:"calendar"
+};
 
-      "Timestamp"
-    ];
+const fieldColors={
+  VOLTAGE_AB:"bg-blue-100",VOLTAGE_BC:"bg-blue-100",VOLTAGE_CA:"bg-blue-100",
+  AVERAGE_PHASE_VOLTAGE:"bg-blue-100",
+  L1_Voltage:"bg-blue-100",L2_Voltage:"bg-blue-100",L3_Voltage:"bg-blue-100",
+  AVERAGE_VOLTAGE:"bg-blue-100",
+  current_phase_1:"bg-yellow-100",current_phase_2:"bg-yellow-100",current_phase_3:"bg-yellow-100",
+  Average_current:"bg-yellow-100",
+  POWER_PHASE_A:"bg-orange-100",POWER_PHASE_B:"bg-orange-100",POWER_PHASE_C:"bg-orange-100",
+  TOTAL_POWER:"bg-orange-100",
+  FREQUENCY:"bg-indigo-100",
+  PowerFactorTotal:"bg-green-100",
+  TotalKWh:"bg-red-100",
 
-    const icons = {
-      "AVERAGE_PHASE_VOLTAGE": "zap",
-      "AVERAGE_VOLTAGE": "zap",
-      "Average_current": "activity",
-      "FREQUENCY": "refresh-cw",
-      "L1_Voltage": "zap",
-      "L2_Voltage": "zap",
-      "L3_Voltage": "zap",
-      "POWER_PHASE_A": "battery-charging",
-      "POWER_PHASE_B": "battery-charging",
-      "POWER_PHASE_C": "battery-charging",
-      "PowerFactorTotal": "percent",
-      "TOTAL_POWER": "battery",
-      "TotalKWh": "database",
-      "VOLTAGE_AB": "zap",
-      "VOLTAGE_BC": "zap",
-      "VOLTAGE_CA": "zap",
-      "current_phase_1": "activity",
-      "current_phase_2": "activity",
-      "current_phase_3": "activity",
+  /* MDI */
+  Present_Demand_kW_15min:"bg-purple-100",
+  Maximum_Demand_MDI_kW:"bg-red-200",
+  Last_MDI_Reset_Time:"bg-gray-200",
+  MDI_Reset_Schedule:"bg-gray-100"
+};
 
-      /* ===== MDI ICONS ===== */
-      "Present_Demand_kW_15min": "activity",
-      "Maximum_Demand_MDI_kW": "trending-up",
-      "Last_MDI_Reset_Time": "clock",
-      "MDI_Reset_Schedule": "calendar"
-    };
+const cards=document.getElementById("cards");
+const pathSelector=document.getElementById("pathSelector");
+const clockEl=document.getElementById("clock");
+let lastPath=null;
 
-    const fieldColors = {
-      "AVERAGE_PHASE_VOLTAGE": "bg-blue-100",
-      "AVERAGE_VOLTAGE": "bg-blue-100",
-      "Average_current": "bg-yellow-100",
-      "FREQUENCY": "bg-indigo-100",
-      "L1_Voltage": "bg-blue-100",
-      "L2_Voltage": "bg-blue-100",
-      "L3_Voltage": "bg-blue-100",
-      "POWER_PHASE_A": "bg-orange-100",
-      "POWER_PHASE_B": "bg-orange-100",
-      "POWER_PHASE_C": "bg-orange-100",
-      "TOTAL_POWER": "bg-orange-100",
-      "PowerFactorTotal": "bg-green-100",
-      "TotalKWh": "bg-red-100",
-      "VOLTAGE_AB": "bg-blue-100",
-      "VOLTAGE_BC": "bg-blue-100",
-      "VOLTAGE_CA": "bg-blue-100",
-      "current_phase_1": "bg-yellow-100",
-      "current_phase_2": "bg-yellow-100",
-      "current_phase_3": "bg-yellow-100",
+function updateCards(data){
+  cards.innerHTML="";
+  fields.forEach(f=>{
+    if(data[f]===undefined) return;
+    const d=document.createElement("div");
+    d.className=`card p-4 rounded-xl shadow ${fieldColors[f]||"bg-white"} text-center`;
+    d.innerHTML=`
+      <div class="flex justify-center mb-1">
+        <i data-feather="${icons[f]||"box"}"></i>
+      </div>
+      <h2 class="text-sm font-bold">${f}</h2>
+      <p class="text-xl font-semibold">
+        ${data[f]}
+        ${["VOLTAGE_AB","VOLTAGE_BC","VOLTAGE_CA","AVERAGE_VOLTAGE","L1_Voltage","L2_Voltage","L3_Voltage"].includes(f)?" V":""}
+        ${["current_phase_1","current_phase_2","current_phase_3","Average_current"].includes(f)?" A":""}
+        ${["POWER_PHASE_A","POWER_PHASE_B","POWER_PHASE_C","TOTAL_POWER","Present_Demand_kW_15min","Maximum_Demand_MDI_kW"].includes(f)?" kW":""}
+        ${f==="TotalKWh"?" kWh":""}
+        ${f==="FREQUENCY"?" Hz":""}
+      </p>`;
+    cards.appendChild(d);
+  });
+  feather.replace();
+}
 
-      /* ===== MDI COLORS ===== */
-      "Present_Demand_kW_15min": "bg-purple-100",
-      "Maximum_Demand_MDI_kW": "bg-red-200",
-      "Last_MDI_Reset_Time": "bg-gray-200",
-      "MDI_Reset_Schedule": "bg-gray-100"
-    };
+function loadData(p){
+  if(lastPath) off(ref(db,lastPath));
+  lastPath=p;
+  onValue(ref(db,p),s=>{
+    const d=s.val();
+    if(!d) return;
+    updateCards(d);
+  });
+}
 
-    const cardsContainer = document.getElementById("cards");
-    const pathSelector = document.getElementById("pathSelector");
+async function loadPaths(){
+  const s=await get(ref(db));
+  const paths=Object.keys(s.val()||{});
+  paths.forEach(p=>{
+    const o=document.createElement("option");
+    o.value=p;o.textContent=p;
+    pathSelector.appendChild(o);
+  });
+  if(paths.length) loadData(paths[0]);
+}
 
-    let lastPath = null;
+function updateClock(){
+  clockEl.textContent=new Date().toLocaleString("en-PK",{timeZone:"Asia/Karachi",hour12:true});
+}
 
-    function updateCards(data) {
-      cardsContainer.innerHTML = "";
-
-      fields.forEach(field => {
-        if (data[field] === undefined) return;
-
-        const card = document.createElement("div");
-        card.className = `card p-4 rounded-xl shadow ${fieldColors[field] || "bg-white"} text-center`;
-
-        card.innerHTML = `
-          <div class="flex justify-center mb-1">
-            <i data-feather="${icons[field] || 'box'}"></i>
-          </div>
-          <h2 class="text-sm font-bold">${field}</h2>
-          <p class="text-xl font-semibold">
-            ${data[field]}
-            ${["VOLTAGE_AB","VOLTAGE_BC","VOLTAGE_CA","AVERAGE_VOLTAGE","L1_Voltage","L2_Voltage","L3_Voltage"].includes(field) ? " V" : ""}
-            ${["current_phase_1","current_phase_2","current_phase_3","Average_current"].includes(field) ? " A" : ""}
-            ${["POWER_PHASE_A","POWER_PHASE_B","POWER_PHASE_C","TOTAL_POWER","Present_Demand_kW_15min","Maximum_Demand_MDI_kW"].includes(field) ? " kW" : ""}
-            ${field === "TotalKWh" ? " kWh" : ""}
-            ${field === "FREQUENCY" ? " Hz" : ""}
-          </p>
-        `;
-        cardsContainer.appendChild(card);
-      });
-
-      feather.replace();
-    }
-
-    function loadData(path) {
-      if (lastPath) off(ref(database, lastPath));
-      lastPath = path;
-
-      onValue(ref(database, path), snap => {
-        const data = snap.val();
-        if (!data) return;
-        updateCards(data);
-      });
-    }
-
-    async function loadPaths() {
-      const snap = await get(ref(database));
-      const paths = Object.keys(snap.val() || {});
-      paths.forEach(p => {
-        const o = document.createElement("option");
-        o.value = p;
-        o.textContent = p;
-        pathSelector.appendChild(o);
-      });
-      if (paths.length) loadData(paths[0]);
-    }
-
-    pathSelector.addEventListener("change", () => loadData(pathSelector.value));
-    loadPaths();
-  </script>
+setInterval(updateClock,1000);
+updateClock();
+pathSelector.addEventListener("change",()=>loadData(pathSelector.value));
+loadPaths();
+</script>
 </head>
 
 <body>
+
+<!-- ✅ CHENAB LOGO HEADER (RESTORED) -->
+<section class="bg-white py-2 hidden md:block">
+  <div class="container mx-auto flex justify-between items-center">
+    <img src="https://chenabengineering.com/wp-content/uploads/2023/06/chenab-logo-1-scaled.png" class="h-14">
+    <div class="text-sm">
+      <div><i class="fas fa-phone"></i> +923027930594</div>
+      <div><i class="fas fa-envelope"></i> energy.cew@gmail.com</div>
+    </div>
+  </div>
+</section>
 
 <header class="bg-green-700 text-white p-4 flex justify-between items-center">
   <div>
     <label>Select Section:</label>
     <select id="pathSelector" class="text-black p-1 rounded"></select>
   </div>
-  <h1 class="font-bold text-lg">Smart Energy Dashboard</h1>
+  <div class="text-center">
+    <h1 class="text-xl font-bold">Smart Energy Dashboard</h1>
+    <div id="clock" class="text-sm"></div>
+  </div>
 </header>
 
-<main class="p-4 max-w-7xl mx-auto">
+<main class="p-4 container mx-auto">
   <section id="cards" class="grid grid-cols-2 md:grid-cols-4 gap-4"></section>
 </main>
 
