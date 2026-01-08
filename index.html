@@ -23,8 +23,6 @@
     background-position: center;
     background-attachment: fixed;
   }
-  .animate-blink { animation: blink 1s infinite; }
-  @keyframes blink { 0%{opacity:1} 50%{opacity:.5} 100%{opacity:1} }
 </style>
 
 <script type="module">
@@ -45,49 +43,36 @@
   const fields = [
     "VOLTAGE_AB","VOLTAGE_BC","VOLTAGE_CA",
     "AVERAGE_PHASE_VOLTAGE",
-
     "L1_Voltage","L2_Voltage","L3_Voltage",
     "AVERAGE_VOLTAGE",
-
     "current_phase_1","current_phase_2","current_phase_3",
     "Average_current",
-
     "POWER_PHASE_A","POWER_PHASE_B","POWER_PHASE_C",
     "TOTAL_POWER",
-
     "FREQUENCY",
     "PowerFactorTotal",
     "TotalKWh",
-
     "Present_Demand",
-
-    /* ---- MDI (ADDED, AT END) ---- */
     "Maximum_Demand_kW",
     "Maximum_Demand_DateTime"
   ];
 
   /* ===================== ICONS ===================== */
   const icons = {
-    AVERAGE_PHASE_VOLTAGE:"zap",
-    AVERAGE_VOLTAGE:"zap",
-    L1_Voltage:"zap",L2_Voltage:"zap",L3_Voltage:"zap",
     VOLTAGE_AB:"zap",VOLTAGE_BC:"zap",VOLTAGE_CA:"zap",
-
+    AVERAGE_PHASE_VOLTAGE:"zap",
+    L1_Voltage:"zap",L2_Voltage:"zap",L3_Voltage:"zap",
+    AVERAGE_VOLTAGE:"zap",
     current_phase_1:"activity",current_phase_2:"activity",current_phase_3:"activity",
     Average_current:"activity",
-
     POWER_PHASE_A:"battery-charging",
     POWER_PHASE_B:"battery-charging",
     POWER_PHASE_C:"battery-charging",
     TOTAL_POWER:"battery",
-
     FREQUENCY:"refresh-cw",
     PowerFactorTotal:"percent",
     TotalKWh:"database",
-
     Present_Demand:"activity",
-
-    /* ---- MDI ---- */
     Maximum_Demand_kW:"trending-up",
     Maximum_Demand_DateTime:"clock"
   };
@@ -96,26 +81,45 @@
   const fieldColors = {
     VOLTAGE_AB:"bg-blue-100",VOLTAGE_BC:"bg-blue-100",VOLTAGE_CA:"bg-blue-100",
     AVERAGE_PHASE_VOLTAGE:"bg-blue-100",
-
     L1_Voltage:"bg-blue-100",L2_Voltage:"bg-blue-100",L3_Voltage:"bg-blue-100",
     AVERAGE_VOLTAGE:"bg-blue-100",
-
     current_phase_1:"bg-yellow-100",current_phase_2:"bg-yellow-100",current_phase_3:"bg-yellow-100",
     Average_current:"bg-yellow-100",
-
     POWER_PHASE_A:"bg-orange-100",POWER_PHASE_B:"bg-orange-100",POWER_PHASE_C:"bg-orange-100",
     TOTAL_POWER:"bg-orange-100",
-
     FREQUENCY:"bg-indigo-100",
     PowerFactorTotal:"bg-green-100",
     TotalKWh:"bg-red-100",
-
     Present_Demand:"bg-purple-100",
-
-    /* ---- MDI ---- */
     Maximum_Demand_kW:"bg-red-200",
     Maximum_Demand_DateTime:"bg-gray-200"
   };
+
+  /* ===================== PM5300 DATETIME FIX ===================== */
+  function normalizePM5300DateTime(raw) {
+    if (!raw || typeof raw !== "string") return raw;
+
+    const m = raw.match(/(\d+)-(\d+)-(\d+)\s+(\d+):(\d+):(\d+)/);
+    if (!m) return raw;
+
+    let [, y, mo, d, h, mi, s] = m.map(Number);
+
+    if (y < 100) y += 2000;
+    h %= 24; mi %= 60; s %= 60;
+
+    const dt = new Date(y, mo - 1, d, h, mi, s);
+    if (isNaN(dt)) return raw;
+
+    return dt.toLocaleString("en-PK", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+      hour12: true
+    });
+  }
 
   /* ===================== ELEMENTS ===================== */
   const cards = document.getElementById("cards");
@@ -129,7 +133,7 @@
   function createChart(ctx, label, color) {
     return new Chart(ctx, {
       type: "line",
-      data: { labels: labels, datasets: [{ label, data: [], borderColor: color, borderWidth: 3, tension: 0.4, pointRadius: 2 }] },
+      data: { labels, datasets: [{ label, data: [], borderColor: color, borderWidth: 3, tension: 0.4, pointRadius: 2 }] },
       options: { responsive:true, animation:false, plugins:{ legend:{ display:false } } }
     });
   }
@@ -137,11 +141,11 @@
   function initCharts() {
     voltageChart = createChart(document.getElementById("voltageChart"), "Average Voltage (V)", "rgb(59,130,246)");
     currentChart = createChart(document.getElementById("currentChart"), "Average Current (A)", "rgb(251,146,60)");
-    powerChart   = createChart(document.getElementById("powerChart"),   "Total Power (kW)", "rgb(34,197,94)");
+    powerChart   = createChart(document.getElementById("powerChart"), "Total Power (kW)", "rgb(34,197,94)");
   }
 
   function updateCharts(d) {
-    const t = new Date().toLocaleTimeString("en-PK", { hour12:false });
+    const t = new Date().toLocaleTimeString("en-PK",{hour12:false});
     if (labels.length > 50) {
       labels.shift();
       voltageChart.data.datasets[0].data.shift();
@@ -170,7 +174,11 @@
         </div>
         <h2 class="text-sm font-bold">${f.replace(/_/g,' ')}</h2>
         <p class="text-2xl font-bold mt-1">
-          ${typeof data[f] === "number" ? Number(data[f]).toFixed(2) : data[f]}
+          ${
+            f === "Maximum_Demand_DateTime"
+              ? normalizePM5300DateTime(data[f])
+              : (typeof data[f] === "number" ? Number(data[f]).toFixed(2) : data[f])
+          }
           ${["VOLTAGE_AB","VOLTAGE_BC","VOLTAGE_CA","AVERAGE_VOLTAGE","L1_Voltage","L2_Voltage","L3_Voltage","AVERAGE_PHASE_VOLTAGE"].includes(f) ? " V" : ""}
           ${["current_phase_1","current_phase_2","current_phase_3","Average_current"].includes(f) ? " A" : ""}
           ${["POWER_PHASE_A","POWER_PHASE_B","POWER_PHASE_C","TOTAL_POWER","Present_Demand","Maximum_Demand_kW"].includes(f) ? " kW" : ""}
