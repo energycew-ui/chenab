@@ -4,10 +4,12 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Smart Energy Dashboard</title>
+
 <script src="https://unpkg.com/feather-icons"></script>
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css"/>
+
 <style>
   .card:hover {
     transform: scale(1.05);
@@ -43,54 +45,76 @@
   const fields = [
     "VOLTAGE_AB","VOLTAGE_BC","VOLTAGE_CA",
     "AVERAGE_PHASE_VOLTAGE",
+
     "L1_Voltage","L2_Voltage","L3_Voltage",
     "AVERAGE_VOLTAGE",
+
     "current_phase_1","current_phase_2","current_phase_3",
     "Average_current",
+
     "POWER_PHASE_A","POWER_PHASE_B","POWER_PHASE_C",
     "TOTAL_POWER",
+
     "FREQUENCY",
     "PowerFactorTotal",
     "TotalKWh",
+
     "Present_Demand",
-    "Maximum_Demand_MDI",
-    "Last_MDI_Reset_Time",
-    "MDI_Reset_Schedule"
+
+    /* ---- MDI (ADDED, AT END) ---- */
+    "Maximum_Demand_kW",
+    "Maximum_Demand_DateTime"
   ];
 
+  /* ===================== ICONS ===================== */
   const icons = {
-    AVERAGE_PHASE_VOLTAGE:"zap", AVERAGE_VOLTAGE:"zap",
+    AVERAGE_PHASE_VOLTAGE:"zap",
+    AVERAGE_VOLTAGE:"zap",
     L1_Voltage:"zap",L2_Voltage:"zap",L3_Voltage:"zap",
     VOLTAGE_AB:"zap",VOLTAGE_BC:"zap",VOLTAGE_CA:"zap",
+
     current_phase_1:"activity",current_phase_2:"activity",current_phase_3:"activity",
     Average_current:"activity",
-    POWER_PHASE_A:"battery-charging",POWER_PHASE_B:"battery-charging",POWER_PHASE_C:"battery-charging",
+
+    POWER_PHASE_A:"battery-charging",
+    POWER_PHASE_B:"battery-charging",
+    POWER_PHASE_C:"battery-charging",
     TOTAL_POWER:"battery",
+
     FREQUENCY:"refresh-cw",
     PowerFactorTotal:"percent",
     TotalKWh:"database",
+
     Present_Demand:"activity",
-    Maximum_Demand_MDI:"trending-up",
-    Last_MDI_Reset_Time:"clock",
-    MDI_Reset_Schedule:"calendar"
+
+    /* ---- MDI ---- */
+    Maximum_Demand_kW:"trending-up",
+    Maximum_Demand_DateTime:"clock"
   };
 
+  /* ===================== COLORS ===================== */
   const fieldColors = {
     VOLTAGE_AB:"bg-blue-100",VOLTAGE_BC:"bg-blue-100",VOLTAGE_CA:"bg-blue-100",
     AVERAGE_PHASE_VOLTAGE:"bg-blue-100",
+
     L1_Voltage:"bg-blue-100",L2_Voltage:"bg-blue-100",L3_Voltage:"bg-blue-100",
     AVERAGE_VOLTAGE:"bg-blue-100",
+
     current_phase_1:"bg-yellow-100",current_phase_2:"bg-yellow-100",current_phase_3:"bg-yellow-100",
     Average_current:"bg-yellow-100",
+
     POWER_PHASE_A:"bg-orange-100",POWER_PHASE_B:"bg-orange-100",POWER_PHASE_C:"bg-orange-100",
     TOTAL_POWER:"bg-orange-100",
+
     FREQUENCY:"bg-indigo-100",
     PowerFactorTotal:"bg-green-100",
     TotalKWh:"bg-red-100",
+
     Present_Demand:"bg-purple-100",
-    Maximum_Demand_MDI:"bg-red-200",
-    Last_MDI_Reset_Time:"bg-gray-200",
-    MDI_Reset_Schedule:"bg-gray-100"
+
+    /* ---- MDI ---- */
+    Maximum_Demand_kW:"bg-red-200",
+    Maximum_Demand_DateTime:"bg-gray-200"
   };
 
   /* ===================== ELEMENTS ===================== */
@@ -105,77 +129,51 @@
   function createChart(ctx, label, color) {
     return new Chart(ctx, {
       type: "line",
-      data: {
-        labels: labels,
-        datasets: [{
-          label: label,
-          data: [],
-          borderColor: color,
-          backgroundColor: color + '40',
-          borderWidth: 3,
-          tension: 0.4,
-          fill: false,
-          pointRadius: 2
-        }]
-      },
-      options: {
-        responsive: true,
-        animation: false,
-        plugins: {
-          legend: { display: false }
-        },
-        scales: {
-          x: { display: true, ticks: { maxTicksLimit: 10 } },
-          y: { beginAtZero: false }
-        }
-      }
+      data: { labels: labels, datasets: [{ label, data: [], borderColor: color, borderWidth: 3, tension: 0.4, pointRadius: 2 }] },
+      options: { responsive:true, animation:false, plugins:{ legend:{ display:false } } }
     });
   }
 
   function initCharts() {
-    voltageChart = createChart(document.getElementById("voltageChart").getContext("2d"), "Average Voltage (V)", "rgb(59, 130, 246)");
-    currentChart = createChart(document.getElementById("currentChart").getContext("2d"), "Average Current (A)", "rgb(251, 146, 60)");
-    powerChart = createChart(document.getElementById("powerChart").getContext("2d"), "Total Power (kW)", "rgb(34, 197, 94)");
+    voltageChart = createChart(document.getElementById("voltageChart"), "Average Voltage (V)", "rgb(59,130,246)");
+    currentChart = createChart(document.getElementById("currentChart"), "Average Current (A)", "rgb(251,146,60)");
+    powerChart   = createChart(document.getElementById("powerChart"),   "Total Power (kW)", "rgb(34,197,94)");
   }
 
-  function updateCharts(data) {
-    const time = new Date().toLocaleTimeString("en-PK", { hour12: false });
-
-    // Keep only last 50 points
+  function updateCharts(d) {
+    const t = new Date().toLocaleTimeString("en-PK", { hour12:false });
     if (labels.length > 50) {
       labels.shift();
       voltageChart.data.datasets[0].data.shift();
       currentChart.data.datasets[0].data.shift();
       powerChart.data.datasets[0].data.shift();
     }
-
-    labels.push(time);
-    voltageChart.data.datasets[0].data.push(data.AVERAGE_VOLTAGE || 0);
-    currentChart.data.datasets[0].data.push(data.Average_current || 0);
-    powerChart.data.datasets[0].data.push(data.TOTAL_POWER || 0);
-
+    labels.push(t);
+    voltageChart.data.datasets[0].data.push(d.AVERAGE_VOLTAGE || 0);
+    currentChart.data.datasets[0].data.push(d.Average_current || 0);
+    powerChart.data.datasets[0].data.push(d.TOTAL_POWER || 0);
     voltageChart.update('none');
     currentChart.update('none');
     powerChart.update('none');
   }
 
-  /* ===================== CARD UPDATE ===================== */
+  /* ===================== CARDS ===================== */
   function updateCards(data) {
     cards.innerHTML = "";
     fields.forEach(f => {
       if (data[f] === undefined) return;
       const d = document.createElement("div");
-      d.className = `card p-4 rounded-xl shadow-lg ${fieldColors[f] || "bg-white"} text-center cursor-pointer`;
+      d.className = `card p-4 rounded-xl shadow-lg ${fieldColors[f] || "bg-white"} text-center`;
       d.innerHTML = `
         <div class="flex justify-center mb-2 text-3xl text-gray-700">
           <i data-feather="${icons[f] || "box"}"></i>
         </div>
-        <h2 class="text-sm font-bold text-gray-800">${f.replace(/_/g, ' ')}</h2>
+        <h2 class="text-sm font-bold">${f.replace(/_/g,' ')}</h2>
         <p class="text-2xl font-bold mt-1">
-          ${Number(data[f]).toFixed(2)}
+          ${typeof data[f] === "number" ? Number(data[f]).toFixed(2) : data[f]}
           ${["VOLTAGE_AB","VOLTAGE_BC","VOLTAGE_CA","AVERAGE_VOLTAGE","L1_Voltage","L2_Voltage","L3_Voltage","AVERAGE_PHASE_VOLTAGE"].includes(f) ? " V" : ""}
           ${["current_phase_1","current_phase_2","current_phase_3","Average_current"].includes(f) ? " A" : ""}
-          ${["POWER_PHASE_A","POWER_PHASE_B","POWER_PHASE_C","TOTAL_POWER","Present_Demand","Maximum_Demand_MDI"].includes(f) ? " kW" : ""}
+          ${["POWER_PHASE_A","POWER_PHASE_B","POWER_PHASE_C","TOTAL_POWER","Present_Demand","Maximum_Demand_kW"].includes(f) ? " kW" : ""}
           ${f === "TotalKWh" ? " kWh" : ""}
           ${f === "FREQUENCY" ? " Hz" : ""}
         </p>`;
@@ -184,7 +182,7 @@
     feather.replace();
   }
 
-  /* ===================== DATA LOADING ===================== */
+  /* ===================== DATA ===================== */
   let lastPath = null;
   function loadData(p) {
     if (lastPath) off(ref(db, lastPath));
@@ -200,110 +198,61 @@
   async function loadPaths() {
     const snap = await get(ref(db));
     const data = snap.val() || {};
-    const paths = Object.keys(data);
     pathSelector.innerHTML = "";
-    paths.forEach(p => {
-      const opt = document.createElement("option");
-      opt.value = p;
-      opt.textContent = p.replace(/_/g, ' ');
-      pathSelector.appendChild(opt);
+    Object.keys(data).forEach(p => {
+      const o = document.createElement("option");
+      o.value = p;
+      o.textContent = p.replace(/_/g,' ');
+      pathSelector.appendChild(o);
     });
-    if (paths.length > 0) {
-      pathSelector.value = paths[0];
-      loadData(paths[0]);
-    }
+    if (pathSelector.value) loadData(pathSelector.value);
   }
 
-  /* ===================== CLOCK ===================== */
   function updateClock() {
-    clockEl.textContent = new Date().toLocaleString("en-PK", { timeZone: "Asia/Karachi", hour12: true });
+    clockEl.textContent = new Date().toLocaleString("en-PK",{timeZone:"Asia/Karachi"});
   }
-  setInterval(updateClock, 1000);
+  setInterval(updateClock,1000);
   updateClock();
 
-  /* ===================== EVENT LISTENERS ===================== */
-  pathSelector.addEventListener("change", () => loadData(pathSelector.value));
+  pathSelector.addEventListener("change",()=>loadData(pathSelector.value));
+  window.addEventListener("load",()=>{ initCharts(); loadPaths(); });
 
-  window.addEventListener("load", () => {
-    initCharts();
-    loadPaths();
-  });
 </script>
 </head>
 
 <body class="text-gray-800 min-h-screen">
-  <!-- Logo and Contact Info Section -->
-  <section class="bg-white shadow-md py-3 px-4">
-    <div class="container mx-auto flex flex-col md:flex-row justify-between items-center gap-4">
-      <div class="flex justify-center md:justify-start">
-        <a href="https://chenabengineering.com" target="_blank">
-          <img src="https://chenabengineering.com/wp-content/uploads/2023/06/chenab-logo-1-scaled.png"
-               alt="Chenab Engineering Works & Foundries Logo"
-               class="h-16 md:h-20 object-contain">
-        </a>
-      </div>
-      <div class="hidden md:flex flex-col items-end text-right text-sm">
-        <div class="flex items-center gap-6 mb-2">
-          <a href="tel:+923027930594" class="flex items-center gap-2 hover:text-green-700">
-            <i class="fas fa-phone"></i> +92 302 7930594
-          </a>
-          <a href="tel:+923097772868" class="flex items-center gap-2 hover:text-green-700">
-            <i class="fas fa-phone"></i> +92 309 7772868
-          </a>
-          <a href="mailto:energy.cew@gmail.com" class="flex items-center gap-2 hover:text-green-700">
-            <i class="fas fa-envelope"></i> energy.cew@gmail.com
-          </a>
-        </div>
-        <div class="text-xs font-semibold">
-          For Queries & Marketing: <a href="mailto:energy.cew@gmail.com" class="hover:text-green-700 underline">energy.cew@gmail.com</a>
-        </div>
-      </div>
-      <div class="md:hidden text-center text-sm">
-        <div class="flex justify-center gap-4 mb-2">
-          <a href="tel:+923027930594" class="hover:text-green-700"><i class="fas fa-phone"></i> +92 302 7930594</a>
-          <a href="mailto:energy.cew@gmail.com" class="hover:text-green-700"><i class="fas fa-envelope"></i></a>
-        </div>
-        <div class="text-xs">Marketing: energy.cew@gmail.com</div>
-      </div>
+
+<header class="bg-green-700 text-white p-4">
+  <div class="container mx-auto flex justify-between items-center">
+    <div>
+      <label>Select Section:</label>
+      <select id="pathSelector" class="text-black p-2 rounded ml-2"></select>
+    </div>
+    <div class="text-center">
+      <h1 class="text-2xl font-bold">Smart Energy Dashboard</h1>
+      <div id="clock" class="text-sm"></div>
+    </div>
+  </div>
+</header>
+
+<main class="p-6 container mx-auto">
+  <section id="cards" class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-10"></section>
+
+  <section class="grid grid-cols-1 md:grid-cols-3 gap-8">
+    <div class="bg-white p-6 rounded-xl shadow-xl">
+      <h2 class="text-center text-xl font-bold mb-4 text-blue-600">Live Voltage</h2>
+      <canvas id="voltageChart"></canvas>
+    </div>
+    <div class="bg-white p-6 rounded-xl shadow-xl">
+      <h2 class="text-center text-xl font-bold mb-4 text-orange-600">Live Current</h2>
+      <canvas id="currentChart"></canvas>
+    </div>
+    <div class="bg-white p-6 rounded-xl shadow-xl">
+      <h2 class="text-center text-xl font-bold mb-4 text-green-600">Live Power</h2>
+      <canvas id="powerChart"></canvas>
     </div>
   </section>
+</main>
 
-  <!-- Main Header -->
-  <header class="bg-green-700 text-white p-4">
-    <div class="container mx-auto flex flex-col md:flex-row justify-between items-center gap-4">
-      <div>
-        <label class="font-semibold">Select Section:</label>
-        <select id="pathSelector" class="text-black p-2 rounded ml-2"></select>
-      </div>
-      <div class="text-center">
-        <h1 class="text-2xl font-bold">Smart Energy Dashboard</h1>
-        <div id="clock" class="text-sm mt-1"></div>
-      </div>
-    </div>
-  </header>
-
-  <main class="p-6 container mx-auto">
-    <!-- Value Cards -->
-    <section id="cards" class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-10"></section>
-
-    <!-- Live Line Charts -->
-    <section class="grid grid-cols-1 md:grid-cols-3 gap-8">
-      <!-- Voltage Chart -->
-      <div class="bg-white p-6 rounded-xl shadow-xl border border-gray-200">
-        <h2 class="text-center text-xl font-bold mb-4 text-blue-600">Live Voltage (V)</h2>
-        <canvas id="voltageChart"></canvas>
-      </div>
-      <!-- Current Chart -->
-      <div class="bg-white p-6 rounded-xl shadow-xl border border-gray-200">
-        <h2 class="text-center text-xl font-bold mb-4 text-orange-600">Live Current (A)</h2>
-        <canvas id="currentChart"></canvas>
-      </div>
-      <!-- Power Chart -->
-      <div class="bg-white p-6 rounded-xl shadow-xl border border-gray-200">
-        <h2 class="text-center text-xl font-bold mb-4 text-green-600">Live Power (kW)</h2>
-        <canvas id="powerChart"></canvas>
-      </div>
-    </section>
-  </main>
 </body>
 </html>
