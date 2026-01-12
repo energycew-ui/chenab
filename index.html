@@ -96,27 +96,49 @@
   };
 
   /* ===================== PM5300 DATETIME FIX ===================== */
- function normalizePM5300DateTime(raw) {
+function normalizePM5300DateTime(raw) {
   if (!raw || typeof raw !== "string") return raw;
 
-  // PM5300 format strictly: DD/MM/YY HH:MM:SS
-  const m = raw.trim().match(
-    /^(\d{2})[\/\-](\d{2})[\/\-](\d{2})\s+(\d{2}):(\d{2}):(\d{2})$/
-  );
+  raw = raw.trim();
 
-  if (!m) return raw;
+  let dd, mm, yy, hh, mi, ss;
 
-  let dd = parseInt(m[1], 10);
-  let mm = parseInt(m[2], 10);
-  let yy = parseInt(m[3], 10);
-  let hh = parseInt(m[4], 10);
-  let mi = parseInt(m[5], 10);
-  let ss = parseInt(m[6], 10);
+  /* ================= FORMAT 1 =================
+     PM5300 LCD / correct format
+     DD/MM/YY HH:MM:SS
+  */
+  let m = raw.match(/^(\d{2})[\/](\d{2})[\/](\d{2})\s+(\d{2}):(\d{2}):(\d{2})$/);
+  if (m) {
+    dd = +m[1];
+    mm = +m[2];
+    yy = 2000 + +m[3];
+    hh = +m[4];
+    mi = +m[5];
+    ss = +m[6];
+  }
 
-  // PM5300 year fix
-  yy += 2000;
+  /* ================= FORMAT 2 =================
+     Wrongly stored format
+     YY-MM-DD HH:MM:SS
+  */
+  if (!m) {
+    m = raw.match(/^(\d{2})-(\d{2})-(\d{2})\s+(\d{2}):(\d{2}):(\d{2})$/);
+    if (m) {
+      yy = 2000 + +m[1];
+      mm = +m[2];
+      dd = +m[3];
+      hh = +m[4];
+      mi = +m[5];
+      ss = +m[6];
+    }
+  }
 
-  // 🔒 HARD VALIDATION (NO JS MAGIC)
+  // If still not matched → return raw
+  if ([dd, mm, yy, hh, mi, ss].some(v => v === undefined)) {
+    return raw;
+  }
+
+  // Hard validation
   if (
     dd < 1 || dd > 31 ||
     mm < 1 || mm > 12 ||
@@ -125,7 +147,6 @@
     return raw;
   }
 
-  // 🔒 Build ISO string manually
   const iso =
     `${yy}-${String(mm).padStart(2, "0")}-${String(dd).padStart(2, "0")}` +
     `T${String(hh).padStart(2, "0")}:${String(mi).padStart(2, "0")}:${String(ss).padStart(2, "0")}`;
@@ -289,5 +310,6 @@
 
 </body>
 </html>
+
 
 
