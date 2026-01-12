@@ -103,9 +103,6 @@ function normalizePM5300DateTime(raw) {
 
   let dd, mm, yy, hh, mi, ss;
 
-  /* CASE 1: PM5300 correct format
-     DD/MM/YY HH:MM:SS
-  */
   let m = raw.match(/^(\d{2})\/(\d{2})\/(\d{2})\s+(\d{2}):(\d{2}):(\d{2})$/);
   if (m) {
     dd = +m[1];
@@ -116,35 +113,13 @@ function normalizePM5300DateTime(raw) {
     ss = +m[6];
   }
 
-  /* CASE 2: YY-MM-DD HH:MM:SS */
-  if (!m) {
-    m = raw.match(/^(\d{2})-(\d{2})-(\d{2})\s+(\d{2}):(\d{2}):(\d{2})$/);
-    if (m) {
-      yy = 2000 + +m[1];
-      mm = +m[2];
-      dd = +m[3];
-      hh = +m[4];
-      mi = +m[5];
-      ss = +m[6];
-    }
-  }
+  if ([dd, mm, yy, hh, mi, ss].some(v => v === undefined)) return raw;
 
-  /* CASE 3: YYYY-MM-DD HH:MM:SS  (YOUR CURRENT BUG) */
-  if (!m) {
-    m = raw.match(/^(\d{4})-(\d{2})-(\d{2})\s+(\d{2}):(\d{2}):(\d{2})$/);
-    if (m) {
-      yy = +m[1];
-      if (yy < 1000) yy += 2000;   // 🔑 FIX 0026 → 2026
-      mm = +m[2];
-      dd = +m[3];
-      hh = +m[4];
-      mi = +m[5];
-      ss = +m[6];
-    }
-  }
-
-  if ([dd, mm, yy, hh, mi, ss].some(v => v === undefined)) {
-    return raw; // fallback only if truly unknown
+  // 🔑 AUTO-CORRECT HH/MM SWAP
+  if (mi > 23 && hh <= 59) {
+    const t = hh;
+    hh = mi;
+    mi = t;
   }
 
   const iso =
@@ -310,6 +285,7 @@ function normalizePM5300DateTime(raw) {
 
 </body>
 </html>
+
 
 
 
