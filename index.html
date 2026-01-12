@@ -96,30 +96,34 @@
   };
 
   /* ===================== PM5300 DATETIME FIX ===================== */
-  function normalizePM5300DateTime(raw) {
-    if (!raw || typeof raw !== "string") return raw;
+ function normalizePM5300DateTime(raw) {
+  if (!raw || typeof raw !== "string") return raw;
 
-    const m = raw.match(/(\d+)-(\d+)-(\d+)\s+(\d+):(\d+):(\d+)/);
-    if (!m) return raw;
+  // PM5300 format: DD/MM/YY HH:MM:SS
+  const m = raw.match(/(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})\s+(\d{1,2}):(\d{1,2}):(\d{1,2})/);
+  if (!m) return raw;
 
-    let [, y, mo, d, h, mi, s] = m.map(Number);
+  let [, dd, mm, yy, hh, mi, ss] = m.map(Number);
 
-    if (y < 100) y += 2000;
-    h %= 24; mi %= 60; s %= 60;
+  // Fix year
+  if (yy < 100) yy += 2000;
 
-    const dt = new Date(y, mo - 1, d, h, mi, s);
-    if (isNaN(dt)) return raw;
+  // ✅ CORRECT ORDER: year, month-1, day
+  const dt = new Date(yy, mm - 1, dd, hh, mi, ss);
+  if (isNaN(dt)) return raw;
 
-    return dt.toLocaleString("en-PK", {
-      day: "2-digit",
-      month: "short",
-      year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-      second: "2-digit",
-      hour12: true
-    });
-  }
+  return dt.toLocaleString("en-PK", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: true,
+    timeZone: "Asia/Karachi"
+  });
+}
+
 
   /* ===================== ELEMENTS ===================== */
   const cards = document.getElementById("cards");
@@ -264,3 +268,4 @@
 
 </body>
 </html>
+
