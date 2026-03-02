@@ -8,39 +8,171 @@
 <script src="https://unpkg.com/feather-icons"></script>
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css"/>
 
 <style>
-.card:hover {
-  transform: scale(1.05);
-  transition: .3s;
-  box-shadow: 0 10px 20px rgba(0,0,0,0.15);
-}
-body{
-  font-size:1.06rem;
-  background-image:url('https://chenabengineering.com/wp-content/uploads/2023/06/istockphoto-1147790557-612x612-1.jpg');
-  background-size:cover;
-  background-position:center;
-  background-attachment:fixed;
-}
+  .card:hover {
+    transform: scale(1.05);
+    transition: .3s;
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.15);
+  }
+  body {
+    font-size: 1.06rem;
+    background-image: url('https://chenabengineering.com/wp-content/uploads/2023/06/istockphoto-1147790557-612x612-1.jpg');
+    background-size: cover;
+    background-position: center;
+    background-attachment: fixed;
+  }
 </style>
-</head>
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getDatabase, ref, onValue, off, get } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+
+window.addEventListener("DOMContentLoaded", () => {
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyApTAM7ZAvxHBDjVNFe7ARN5iNtshA8TFQ",
+    authDomain: "energy-monitoring-chenab-60e72.firebaseapp.com",
+    databaseURL: "https://energy-monitoring-chenab-60e72-default-rtdb.firebaseio.com",
+    projectId: "energy-monitoring-chenab-60e72"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getDatabase(app);
+
+  const cards = document.getElementById("cards");
+  const pathSelector = document.getElementById("pathSelector");
+  const clockEl = document.getElementById("clock");
+  const historyBtn = document.getElementById("historyBtn");
+  const historySection = document.getElementById("historySection");
+  const closeHistory = document.getElementById("closeHistory");
+
+  /* CLOCK */
+  function updateClock() {
+    clockEl.textContent = new Date().toLocaleString("en-PK",{timeZone:"Asia/Karachi"});
+  }
+  setInterval(updateClock,1000);
+  updateClock();
+
+  /* CHARTS */
+  const labels = [];
+  let voltageChart, currentChart, powerChart;
+
+  function createChart(ctx, label, color) {
+    return new Chart(ctx, {
+      type: "line",
+      data: { labels, datasets: [{ label, data: [], borderColor: color, borderWidth: 3, tension: 0.4, pointRadius: 2 }] },
+      options: { responsive:true, animation:false, plugins:{ legend:{ display:false } } }
+    });
+  }
+
+  function initCharts() {
+    voltageChart = createChart(document.getElementById("voltageChart"), "Average Voltage (V)", "rgb(59,130,246)");
+    currentChart = createChart(document.getElementById("currentChart"), "Average Current (A)", "rgb(251,146,60)");
+    powerChart   = createChart(document.getElementById("powerChart"), "Total Power (kW)", "rgb(34,197,94)");
+  }
+
+  function updateCharts(d) {
+    const t = new Date().toLocaleTimeString("en-PK",{hour12:false});
+    if (labels.length > 50) {
+      labels.shift();
+      voltageChart.data.datasets[0].data.shift();
+      currentChart.data.datasets[0].data.shift();
+      powerChart.data.datasets[0].data.shift();
+    }
+    labels.push(t);
+    voltageChart.data.datasets[0].data.push(d.AVERAGE_VOLTAGE || 0);
+    currentChart.data.datasets[0].data.push(d.Average_current || 0);
+    powerChart.data.datasets[0].data.push(d.TOTAL_POWER || 0);
+    voltageChart.update('none');
+    currentChart.update('none');
+    powerChart.update('none');
+  }
+
+  /* DATA LOAD */
+  let lastPath = null;
+
+  function loadData(p) {
+    if (lastPath) off(ref(db, lastPath));
+    lastPath = p;
+
+    onValue(ref(db, p), snap => {
+      const d = snap.val();
+      if (!d) return;
+
+      cards.innerHTML = "";
+      Object.keys(d).forEach(key => {
+        const div = document.createElement("div");
+        div.className = "card p-4 rounded-xl shadow-lg bg-white text-center";
+        div.innerHTML = `
+          <div class="flex justify-center mb-2 text-3xl text-gray-700">
+            <i data-feather="zap"></i>
+          </div>
+          <h2 class="text-sm font-bold">${key.replace(/_/g,' ')}</h2>
+          <p class="text-2xl font-bold mt-1">${d[key]}</p>`;
+        cards.appendChild(div);
+      });
+
+      feather.replace();
+      updateCharts(d);
+    });
+  }
+
+  async function loadPaths() {
+    const snap = await get(ref(db));
+    const data = snap.val() || {};
+    pathSelector.innerHTML = "";
+
+    Object.keys(data).forEach(p => {
+      const o = document.createElement("option");
+      o.value = p;
+      o.textContent = p.replace(/_/g,' ');
+      pathSelector.appendChild(o);
+    });
+
+    if (pathSelector.value) loadData(pathSelector.value);
+  }
+
+  pathSelector.addEventListener("change",()=>loadData(pathSelector.value));
+
+  /* HISTORY BUTTON */
+  historyBtn.addEventListener("click", () => {
+    const selectedMeter = pathSelector.value;
+    if (!selectedMeter) {
+      alert("Please select a meter first.");
+      return;
+    }
+    historySection.classList.remove("hidden");
+    historySection.scrollIntoView({ behavior: "smooth" });
+  });
+
+  closeHistory.addEventListener("click", () => {
+    historySection.classList.add("hidden");
+  });
+
+  /* INIT */
+  initCharts();
+  loadPaths();
+
+});
+</script></head>
 
 <body class="text-gray-800 min-h-screen">
 
 <header class="bg-green-700 text-white p-4">
   <div class="container mx-auto flex justify-between items-center">
     <div class="flex items-center gap-3">
-      <div>
-        <label>Select Section:</label>
-        <select id="pathSelector" class="text-black p-2 rounded ml-2"></select>
-      </div>
+  <div>
+    <label>Select Section:</label>
+    <select id="pathSelector" class="text-black p-2 rounded ml-2"></select>
+  </div>
 
-      <button id="historyBtn"
-        class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded shadow">
-        History
-      </button>
-    </div>
-
+  <!-- 🔵 HISTORY BUTTON -->
+  <button id="historyBtn"
+    class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded shadow">
+    History
+  </button>
+</div>
     <div class="text-center">
       <h1 class="text-2xl font-bold">Smart Energy Dashboard</h1>
       <div id="clock" class="text-sm"></div>
@@ -49,134 +181,69 @@ body{
 </header>
 
 <main class="p-6 container mx-auto">
+  <section id="cards" class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-10"></section>
 
-<section id="cards" class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-10"></section>
-
-<section class="grid grid-cols-1 md:grid-cols-3 gap-8">
-  <div class="bg-white p-6 rounded-xl shadow-xl">
-    <h2 class="text-center text-xl font-bold mb-4 text-blue-600">Live Voltage</h2>
-    <canvas id="voltageChart"></canvas>
-  </div>
-  <div class="bg-white p-6 rounded-xl shadow-xl">
-    <h2 class="text-center text-xl font-bold mb-4 text-orange-600">Live Current</h2>
-    <canvas id="currentChart"></canvas>
-  </div>
-  <div class="bg-white p-6 rounded-xl shadow-xl">
-    <h2 class="text-center text-xl font-bold mb-4 text-green-600">Live Power</h2>
-    <canvas id="powerChart"></canvas>
-  </div>
-</section>
-
+  <section class="grid grid-cols-1 md:grid-cols-3 gap-8">
+    <div class="bg-white p-6 rounded-xl shadow-xl">
+      <h2 class="text-center text-xl font-bold mb-4 text-blue-600">Live Voltage</h2>
+      <canvas id="voltageChart"></canvas>
+    </div>
+    <div class="bg-white p-6 rounded-xl shadow-xl">
+      <h2 class="text-center text-xl font-bold mb-4 text-orange-600">Live Current</h2>
+      <canvas id="currentChart"></canvas>
+    </div>
+    <div class="bg-white p-6 rounded-xl shadow-xl">
+      <h2 class="text-center text-xl font-bold mb-4 text-green-600">Live Power</h2>
+      <canvas id="powerChart"></canvas>
+    </div>
+  </section>
+  <!-- ===================== HISTORY SECTION ===================== -->
 <section id="historySection" class="hidden mt-10 bg-white p-6 rounded-xl shadow-xl">
   <div class="flex justify-between items-center mb-4">
     <h2 class="text-xl font-bold text-gray-700">Meter History</h2>
-    <button id="closeHistory" class="bg-red-500 text-white px-3 py-1 rounded">Close</button>
+    <div class="flex flex-wrap gap-4 mt-4 mb-4">
+  <div>
+    <label class="text-sm font-semibold">Select Date:</label><br>
+    <input type="date" id="historyDate" class="border p-2 rounded">
+  </div>
+
+  <div>
+    <label class="text-sm font-semibold">Select Time:</label><br>
+    <input type="time" id="historyTime" class="border p-2 rounded">
+  </div>
+
+  <div class="flex items-end">
+    <button id="searchHistory"
+      class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded shadow">
+      Search
+    </button>
+  </div>
+</div>
+    <button id="closeHistory" class="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded">
+      Close
+    </button>
+  </div>
+
+  <div class="overflow-x-auto">
+    <table class="min-w-full text-sm text-left border">
+      <thead class="bg-gray-200">
+        <tr id="historyHead"></tr>
+      </thead>
+      <tbody id="historyBody"></tbody>
+    </table>
   </div>
 </section>
-
 </main>
-
-<!-- ================= JS MOVED TO BOTTOM ================= -->
-
-<script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import { getDatabase, ref, onValue, off, get } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
-
-const firebaseConfig = {
-  apiKey: "AIzaSyApTAM7ZAvxHBDjVNFe7ARN5iNtshA8TFQ",
-  authDomain: "energy-monitoring-chenab-60e72.firebaseapp.com",
-  databaseURL: "https://energy-monitoring-chenab-60e72-default-rtdb.firebaseio.com",
-  projectId: "energy-monitoring-chenab-60e72"
-};
-
-const app = initializeApp(firebaseConfig);
-const db = getDatabase(app);
-
-/* ELEMENTS */
-const cards = document.getElementById("cards");
-const pathSelector = document.getElementById("pathSelector");
-const clockEl = document.getElementById("clock");
-const historyBtn = document.getElementById("historyBtn");
-const historySection = document.getElementById("historySection");
-const closeHistory = document.getElementById("closeHistory");
-
-/* CLOCK */
-function updateClock(){
-  clockEl.textContent = new Date().toLocaleString("en-PK",{timeZone:"Asia/Karachi"});
-}
-setInterval(updateClock,1000);
-updateClock();
-
-/* CHARTS */
-const labels=[];
-let voltageChart,currentChart,powerChart;
-
-function createChart(ctx,label,color){
-  return new Chart(ctx,{
-    type:"line",
-    data:{labels,datasets:[{label,data:[],borderColor:color,borderWidth:3,tension:0.4,pointRadius:2}]},
-    options:{responsive:true,animation:false,plugins:{legend:{display:false}}}
-  });
-}
-
-function initCharts(){
-  voltageChart=createChart(document.getElementById("voltageChart"),"Voltage","blue");
-  currentChart=createChart(document.getElementById("currentChart"),"Current","orange");
-  powerChart=createChart(document.getElementById("powerChart"),"Power","green");
-}
-
-/* LOAD DATA */
-let lastPath=null;
-
-function loadData(p){
-  if(lastPath) off(ref(db,lastPath));
-  lastPath=p;
-  onValue(ref(db,p),snap=>{
-    const d=snap.val();
-    if(!d) return;
-    cards.innerHTML="";
-    Object.keys(d).forEach(key=>{
-      const div=document.createElement("div");
-      div.className="card bg-white p-4 rounded-xl shadow text-center";
-      div.innerHTML=`<h2 class="font-bold">${key}</h2>
-                     <p class="text-xl">${d[key]}</p>`;
-      cards.appendChild(div);
-    });
-    feather.replace();
-  });
-}
-
-async function loadPaths(){
-  const snap=await get(ref(db));
-  const data=snap.val()||{};
-  pathSelector.innerHTML="";
-  Object.keys(data).forEach(p=>{
-    const o=document.createElement("option");
-    o.value=p;
-    o.textContent=p.replace(/_/g,' ');
-    pathSelector.appendChild(o);
-  });
-  if(pathSelector.value) loadData(pathSelector.value);
-}
-
-pathSelector.addEventListener("change",()=>loadData(pathSelector.value));
-
-/* HISTORY BUTTON */
-historyBtn.addEventListener("click",()=>{
-  historySection.classList.remove("hidden");
-  historySection.scrollIntoView({behavior:"smooth"});
-});
-
-closeHistory.addEventListener("click",()=>{
-  historySection.classList.add("hidden");
-});
-
-/* INIT */
-window.addEventListener("load",()=>{
-  initCharts();
-  loadPaths();
-});
-</script>
 
 </body>
 </html>
+
+
+
+
+
+
+
+
+
+
