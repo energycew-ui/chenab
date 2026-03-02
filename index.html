@@ -247,6 +247,11 @@ function normalizePM5300DateTime(raw) {
   // ===================== HISTORY BUTTON =====================
 const historyBtn = document.getElementById("historyBtn");
 
+// ===================== HISTORY BUTTON =====================
+const historyBtn = document.getElementById("historyBtn");
+const historySection = document.getElementById("historySection");
+const closeHistory = document.getElementById("closeHistory");
+
 historyBtn.addEventListener("click", () => {
   const selectedMeter = pathSelector.value;
   if (!selectedMeter) {
@@ -254,7 +259,15 @@ historyBtn.addEventListener("click", () => {
     return;
   }
 
-  alert("History button clicked for: " + selectedMeter);
+  // Show history section
+  historySection.classList.remove("hidden");
+
+  // Scroll to history
+  historySection.scrollIntoView({ behavior: "smooth" });
+});
+
+closeHistory.addEventListener("click", () => {
+  historySection.classList.add("hidden");
 });
   window.addEventListener("load",()=>{ initCharts(); loadPaths(); });
 
@@ -341,6 +354,7 @@ historyBtn.addEventListener("click", () => {
 
 </body>
 </html>
+
 
 
 
