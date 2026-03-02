@@ -301,10 +301,29 @@ historyBtn.addEventListener("click", () => {
       <canvas id="powerChart"></canvas>
     </div>
   </section>
+  <!-- ===================== HISTORY SECTION ===================== -->
+<section id="historySection" class="hidden mt-10 bg-white p-6 rounded-xl shadow-xl">
+  <div class="flex justify-between items-center mb-4">
+    <h2 class="text-xl font-bold text-gray-700">Meter History</h2>
+    <button id="closeHistory" class="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded">
+      Close
+    </button>
+  </div>
+
+  <div class="overflow-x-auto">
+    <table class="min-w-full text-sm text-left border">
+      <thead class="bg-gray-200">
+        <tr id="historyHead"></tr>
+      </thead>
+      <tbody id="historyBody"></tbody>
+    </table>
+  </div>
+</section>
 </main>
 
 </body>
 </html>
+
 
 
 
