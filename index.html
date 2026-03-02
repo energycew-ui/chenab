@@ -253,10 +253,18 @@ function normalizePM5300DateTime(raw) {
 
 <header class="bg-green-700 text-white p-4">
   <div class="container mx-auto flex justify-between items-center">
-    <div>
-      <label>Select Section:</label>
-      <select id="pathSelector" class="text-black p-2 rounded ml-2"></select>
-    </div>
+    <div class="flex items-center gap-3">
+  <div>
+    <label>Select Section:</label>
+    <select id="pathSelector" class="text-black p-2 rounded ml-2"></select>
+  </div>
+
+  <!-- 🔵 HISTORY BUTTON -->
+  <button id="historyBtn"
+    class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded shadow">
+    History
+  </button>
+</div>
     <div class="text-center">
       <h1 class="text-2xl font-bold">Smart Energy Dashboard</h1>
       <div id="clock" class="text-sm"></div>
@@ -285,6 +293,7 @@ function normalizePM5300DateTime(raw) {
 
 </body>
 </html>
+
 
 
 
