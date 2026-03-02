@@ -244,6 +244,18 @@ function normalizePM5300DateTime(raw) {
   updateClock();
 
   pathSelector.addEventListener("change",()=>loadData(pathSelector.value));
+  // ===================== HISTORY BUTTON =====================
+const historyBtn = document.getElementById("historyBtn");
+
+historyBtn.addEventListener("click", () => {
+  const selectedMeter = pathSelector.value;
+  if (!selectedMeter) {
+    alert("Please select a meter first.");
+    return;
+  }
+
+  alert("History button clicked for: " + selectedMeter);
+});
   window.addEventListener("load",()=>{ initCharts(); loadPaths(); });
 
 </script>
@@ -293,6 +305,7 @@ function normalizePM5300DateTime(raw) {
 
 </body>
 </html>
+
 
 
 
