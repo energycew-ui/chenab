@@ -1,1 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Meter History</title>
 
+<script src="https://cdn.tailwindcss.com"></script>
+
+<style>
+  body {
+    font-size: 1.06rem;
+    background-image: url('https://chenabengineering.com/wp-content/uploads/2023/06/istockphoto-1147790557-612x612-1.jpg');
+    background-size: cover;
+    background-position: center;
+    background-attachment: fixed;
+  }
+</style>
+</head>
+
+<body class="text-gray-800 min-h-screen">
+
+<!-- ================= HEADER (SAME DESIGN) ================= -->
+<header class="bg-green-700 text-white p-4">
+  <div class="container mx-auto flex justify-between items-center">
+    <div>
+      <h1 class="text-2xl font-bold">Smart Energy Dashboard - History</h1>
+      <div id="selectedMeter" class="text-sm mt-1"></div>
+    </div>
+
+    <div class="flex gap-3">
+      <button onclick="window.close()"
+        class="bg-gray-600 hover:bg-gray-700 px-4 py-2 rounded shadow">
+        Close
+      </button>
+
+      <a href="index.html"
+        class="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded shadow">
+        Back to Dashboard
+      </a>
+    </div>
+  </div>
+</header>
+
+<!-- ================= CONTENT ================= -->
+<main class="p-6 container mx-auto">
+
+  <!-- FILTER SECTION -->
+  <div class="bg-white p-6 rounded-xl shadow-xl mb-6">
+    <div class="grid md:grid-cols-4 gap-6">
+
+      <div>
+        <label class="font-semibold text-sm">Select Date</label>
+        <input type="date" id="historyDate"
+          class="w-full border p-2 rounded mt-1">
+      </div>
+
+      <div>
+        <label class="font-semibold text-sm">Time From</label>
+        <input type="time" id="timeFrom"
+          class="w-full border p-2 rounded mt-1">
+      </div>
+
+      <div>
+        <label class="font-semibold text-sm">Time To</label>
+        <input type="time" id="timeTo"
+          class="w-full border p-2 rounded mt-1">
+      </div>
+
+      <div class="flex items-end">
+        <button id="searchBtn"
+          class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded shadow w-full">
+          Search History
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- SUMMARY RESULT CARDS -->
+  <div id="summarySection"
+    class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6 hidden">
+  </div>
+
+  <!-- TABLE -->
+  <div class="bg-white p-6 rounded-xl shadow-xl">
+    <div class="overflow-x-auto">
+      <table class="min-w-full text-sm border">
+        <thead class="bg-gray-200">
+          <tr id="historyHead"></tr>
+        </thead>
+        <tbody id="historyBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+</main>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+  import { getDatabase, ref, get } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyApTAM7ZAvxHBDjVNFe7ARN5iNtshA8TFQ",
+    authDomain: "energy-monitoring-chenab-60e72.firebaseapp.com",
+    databaseURL: "https://energy-monitoring-chenab-60e72-default-rtdb.firebaseio.com",
+    projectId: "energy-monitoring-chenab-60e72"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getDatabase(app);
+
+  /* ================= GET METER FROM URL ================= */
+  const params = new URLSearchParams(window.location.search);
+  const meter = params.get("meter");
+
+  document.getElementById("selectedMeter").innerText =
+    meter ? `Meter: ${meter.replace(/_/g," ")}` : "No meter selected";
+
+  /* ================= SEARCH ================= */
+  document.getElementById("searchBtn").addEventListener("click", async () => {
+
+    if (!meter) {
+      alert("No meter selected.");
+      return;
+    }
+
+    const date = document.getElementById("historyDate").value;
+    const from = document.getElementById("timeFrom").value;
+    const to = document.getElementById("timeTo").value;
+
+    if (!date || !from || !to) {
+      alert("Please select date and time range.");
+      return;
+    }
+
+    // Combine date + time
+    const start = new Date(`${date}T${from}`);
+    const end = new Date(`${date}T${to}`);
+
+    // 🔑 ±10 minute logic
+    start.setMinutes(start.getMinutes() - 10);
+    end.setMinutes(end.getMinutes() + 10);
+
+    const snapshot = await get(ref(db, meter));
+    const data = snapshot.val();
+
+    if (!data) {
+      alert("No data found.");
+      return;
+    }
+
+    const rows = Object.values(data);
+
+    const filtered = rows.filter(r => {
+      if (!r.Timestamp) return false;
+      const t = new Date(r.Timestamp);
+      return t >= start && t <= end;
+    });
+
+    if (filtered.length === 0) {
+      alert("No records in selected range.");
+      return;
+    }
+
+    renderTable(filtered);
+  });
+
+  /* ================= RENDER TABLE ================= */
+  function renderTable(data) {
+    const head = document.getElementById("historyHead");
+    const body = document.getElementById("historyBody");
+
+    head.innerHTML = "";
+    body.innerHTML = "";
+
+    const keys = Object.keys(data[0]);
+
+    keys.forEach(k => {
+      const th = document.createElement("th");
+      th.className = "border p-2";
+      th.innerText = k;
+      head.appendChild(th);
+    });
+
+    data.forEach(row => {
+      const tr = document.createElement("tr");
+      keys.forEach(k => {
+        const td = document.createElement("td");
+        td.className = "border p-2";
+        td.innerText = row[k];
+        tr.appendChild(td);
+      });
+      body.appendChild(tr);
+    });
+  }
+</script>
+
+</body>
+</html>
