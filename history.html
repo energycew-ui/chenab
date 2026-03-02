@@ -1,162 +1,100 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Meter History</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Smart Energy Dashboard - History</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <style>
-  body {
-    font-size: 1.06rem;
-    background-image: url('https://chenabengineering.com/wp-content/uploads/2023/06/istockphoto-1147790557-612x612-1.jpg');
-    background-size: cover;
-    background-position: center;
-    background-attachment: fixed;
-  }
+body{
+font-size:1.06rem;
+background-image:url('https://chenabengineering.com/wp-content/uploads/2023/06/istockphoto-1147790557-612x612-1.jpg');
+background-size:cover;
+background-position:center;
+background-attachment:fixed;
+}
 </style>
 </head>
 <body class="text-gray-800 min-h-screen">
 <header class="bg-green-700 text-white p-4">
-  <div class="container mx-auto flex justify-between items-center">
-    <div>
-      <h1 class="text-2xl font-bold">Smart Energy Dashboard - History</h1>
-      <div id="selectedMeter" class="text-sm mt-1"></div>
-    </div>
-    <div class="flex gap-3">
-      <a href="index.html"
-        class="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded shadow">
-        Back to Dashboard
-      </a>
-    </div>
-  </div>
+<div class="container mx-auto flex justify-between items-center">
+<div>
+<h1 class="text-2xl font-bold">Smart Energy Dashboard - History</h1>
+<p id="meterName" class="text-sm"></p>
+</div>
+<div class="flex gap-3">
+<button onclick="window.close()" class="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded">Close</button>
+<a href="index.html" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded">Back to Dashboard</a>
+</div>
+</div>
 </header>
-
-<main class="p-6 container mx-auto">
-
-  <div class="bg-white p-6 rounded-xl shadow-xl mb-6">
-    <div class="grid md:grid-cols-4 gap-6">
-
-      <div>
-        <label class="font-semibold text-sm">Select Date</label>
-        <input type="date" id="historyDate"
-          class="w-full border p-2 rounded mt-1">
-      </div>
-
-      <div>
-        <label class="font-semibold text-sm">Time From</label>
-        <input type="time" id="timeFrom"
-          class="w-full border p-2 rounded mt-1">
-      </div>
-
-      <div>
-        <label class="font-semibold text-sm">Time To</label>
-        <input type="time" id="timeTo"
-          class="w-full border p-2 rounded mt-1">
-      </div>
-
-      <div class="flex items-end">
-        <button id="searchBtn"
-          class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded shadow w-full">
-          Search History
-        </button>
-      </div>
-
-    </div>
-  </div>
-
-  <div class="bg-white p-6 rounded-xl shadow-xl">
-    <div class="overflow-x-auto">
-      <table class="min-w-full text-sm border">
-        <thead class="bg-gray-200">
-          <tr id="historyHead"></tr>
-        </thead>
-        <tbody id="historyBody"></tbody>
-      </table>
-    </div>
-  </div>
-
+<main class="container mx-auto p-6">
+<div class="bg-white p-6 rounded-xl shadow-xl mb-6">
+<div class="grid md:grid-cols-4 gap-4 items-end">
+<div>
+<label class="font-semibold text-sm">Select Date</label>
+<input type="date" id="historyDate" class="border p-2 rounded w-full">
+</div>
+<div>
+<label class="font-semibold text-sm">Time From</label>
+<input type="time" id="timeFrom" class="border p-2 rounded w-full">
+</div>
+<div>
+<label class="font-semibold text-sm">Time To</label>
+<input type="time" id="timeTo" class="border p-2 rounded w-full">
+</div>
+<div>
+<button id="searchBtn" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded w-full">Search History</button>
+</div>
+</div>
+</div>
+<div class="bg-white p-6 rounded-xl shadow-xl overflow-x-auto">
+<table class="min-w-full text-sm text-left border">
+<thead class="bg-gray-200">
+<tr id="tableHead"></tr>
+</thead>
+<tbody id="tableBody"></tbody>
+</table>
+</div>
 </main>
-
 <script>
-const SHEET_ID = "1zsuG8lYGSOH8XDAWLx5mGi2MM2mMUDpwcoaHolVeEkE";
-const SHEET_NAME = "Sheet1";
-
-document.getElementById("selectedMeter").innerText =
-  "Meter: 6 Ton Induction";
-
-document.getElementById("searchBtn").addEventListener("click", async () => {
-
-  const date = document.getElementById("historyDate").value;
-  const from = document.getElementById("timeFrom").value;
-  const to = document.getElementById("timeTo").value;
-
-  if (!date || !from || !to) {
-    alert("Please select date and time range.");
-    return;
-  }
-
-  const start = new Date(`${date}T${from}`);
-  const end = new Date(`${date}T${to}`);
-
-  // ±10 min logic
-  start.setMinutes(start.getMinutes() - 10);
-  end.setMinutes(end.getMinutes() + 10);
-
-  const url =
-    `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&sheet=${SHEET_NAME}`;
-
-  const res = await fetch(url);
-  const text = await res.text();
-
-  const json = JSON.parse(text.substring(47).slice(0, -2));
-
-  const rows = json.table.rows;
-  const cols = json.table.cols;
-
-  const filtered = rows.filter(r => {
-    if (!r.c[0]) return false;
-
-    const rowDate = new Date(r.c[0].v);
-
-    return rowDate >= start && rowDate <= end;
-  });
-
-  if (filtered.length === 0) {
-    alert("No records in selected range.");
-    return;
-  }
-
-  renderTable(cols, filtered);
-});
-
-function renderTable(cols, rows) {
-
-  const head = document.getElementById("historyHead");
-  const body = document.getElementById("historyBody");
-
-  head.innerHTML = "";
-  body.innerHTML = "";
-
-  cols.forEach(col => {
-    const th = document.createElement("th");
-    th.className = "border p-2";
-    th.innerText = col.label;
-    head.appendChild(th);
-  });
-
-  rows.forEach(row => {
-    const tr = document.createElement("tr");
-    row.c.forEach(cell => {
-      const td = document.createElement("td");
-      td.className = "border p-2";
-      td.innerText = cell ? cell.v : "";
-      tr.appendChild(td);
-    });
-    body.appendChild(tr);
-  });
+const sheetID="1zsuG8lYGSOH8XDAWLx5mGi2MM2mMUDpwcoaHolVeEkE";
+const sheetName="Sheet1";
+const url=`https://docs.google.com/spreadsheets/d/${sheetID}/gviz/tq?tqx=out:json&sheet=${sheetName}`;
+const params=new URLSearchParams(window.location.search);
+const meter=params.get("meter");
+document.getElementById("meterName").innerText="Meter: "+(meter?meter:"Unknown");
+document.getElementById("searchBtn").addEventListener("click",async()=>{
+const selectedDate=document.getElementById("historyDate").value;
+const timeFrom=document.getElementById("timeFrom").value;
+const timeTo=document.getElementById("timeTo").value;
+if(!selectedDate||!timeFrom||!timeTo){
+alert("Please select date and time range.");
+return;
 }
+const fromDateTime=new Date(`${selectedDate}T${timeFrom}:00`);
+const toDateTime=new Date(`${selectedDate}T${timeTo}:59`);
+const res=await fetch(url);
+const text=await res.text();
+const json=JSON.parse(text.substr(47).slice(0,-2));
+const rows=json.table.rows;
+const headers=json.table.cols.map(c=>c.label);
+document.getElementById("tableHead").innerHTML=headers.map(h=>`<th class="border px-3 py-2">${h}</th>`).join("");
+let filtered=[];
+rows.forEach(r=>{
+if(!r.c||!r.c[0]||!r.c[0].v)return;
+const rowDate=new Date(r.c[0].v.replace(" ","T"));
+if(rowDate>=fromDateTime&&rowDate<=toDateTime){
+filtered.push(r);
+}
+});
+if(filtered.length===0){
+alert("No records in selected range.");
+document.getElementById("tableBody").innerHTML="";
+return;
+}
+document.getElementById("tableBody").innerHTML=filtered.map(r=>`<tr>${r.c.map(cell=>`<td class="border px-3 py-2">${cell?cell.v:""}</td>`).join("")}</tr>`).join("");
+});
 </script>
 </body>
 </html>
-
-
