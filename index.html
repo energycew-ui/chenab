@@ -44,52 +44,81 @@ window.addEventListener("DOMContentLoaded", () => {
   const pathSelector = document.getElementById("pathSelector");
   const clockEl = document.getElementById("clock");
   const historyBtn = document.getElementById("historyBtn");
-  const historySection = document.getElementById("historySection");
-  const closeHistory = document.getElementById("closeHistory");
 
-  /* CLOCK */
+  /* ================= CLOCK ================= */
   function updateClock() {
     clockEl.textContent = new Date().toLocaleString("en-PK",{timeZone:"Asia/Karachi"});
   }
   setInterval(updateClock,1000);
   updateClock();
 
-  /* CHARTS */
+  /* ================= CHART SETUP (YOUR ORIGINAL COLORS) ================= */
   const labels = [];
   let voltageChart, currentChart, powerChart;
 
   function createChart(ctx, label, color) {
     return new Chart(ctx, {
       type: "line",
-      data: { labels, datasets: [{ label, data: [], borderColor: color, borderWidth: 3, tension: 0.4, pointRadius: 2 }] },
-      options: { responsive:true, animation:false, plugins:{ legend:{ display:false } } }
+      data: {
+        labels,
+        datasets: [{
+          label,
+          data: [],
+          borderColor: color,
+          borderWidth: 3,
+          tension: 0.4,
+          pointRadius: 2
+        }]
+      },
+      options: {
+        responsive: true,
+        animation: false,
+        plugins: { legend: { display: false } }
+      }
     });
   }
 
   function initCharts() {
-    voltageChart = createChart(document.getElementById("voltageChart"), "Average Voltage (V)", "rgb(59,130,246)");
-    currentChart = createChart(document.getElementById("currentChart"), "Average Current (A)", "rgb(251,146,60)");
-    powerChart   = createChart(document.getElementById("powerChart"), "Total Power (kW)", "rgb(34,197,94)");
+    voltageChart = createChart(
+      document.getElementById("voltageChart"),
+      "Average Voltage (V)",
+      "rgb(59,130,246)"   // BLUE (original)
+    );
+
+    currentChart = createChart(
+      document.getElementById("currentChart"),
+      "Average Current (A)",
+      "rgb(251,146,60)"   // ORANGE (original)
+    );
+
+    powerChart = createChart(
+      document.getElementById("powerChart"),
+      "Total Power (kW)",
+      "rgb(34,197,94)"    // GREEN (original)
+    );
   }
 
   function updateCharts(d) {
     const t = new Date().toLocaleTimeString("en-PK",{hour12:false});
+
     if (labels.length > 50) {
       labels.shift();
       voltageChart.data.datasets[0].data.shift();
       currentChart.data.datasets[0].data.shift();
       powerChart.data.datasets[0].data.shift();
     }
+
     labels.push(t);
     voltageChart.data.datasets[0].data.push(d.AVERAGE_VOLTAGE || 0);
     currentChart.data.datasets[0].data.push(d.Average_current || 0);
     powerChart.data.datasets[0].data.push(d.TOTAL_POWER || 0);
+
     voltageChart.update('none');
     currentChart.update('none');
     powerChart.update('none');
   }
 
-  /* DATA LOAD */
+  /* ================= DATA ================= */
   let lastPath = null;
 
   function loadData(p) {
@@ -100,20 +129,7 @@ window.addEventListener("DOMContentLoaded", () => {
       const d = snap.val();
       if (!d) return;
 
-      cards.innerHTML = "";
-      Object.keys(d).forEach(key => {
-        const div = document.createElement("div");
-        div.className = "card p-4 rounded-xl shadow-lg bg-white text-center";
-        div.innerHTML = `
-          <div class="flex justify-center mb-2 text-3xl text-gray-700">
-            <i data-feather="zap"></i>
-          </div>
-          <h2 class="text-sm font-bold">${key.replace(/_/g,' ')}</h2>
-          <p class="text-2xl font-bold mt-1">${d[key]}</p>`;
-        cards.appendChild(div);
-      });
-
-      feather.replace();
+      updateCards(d);
       updateCharts(d);
     });
   }
@@ -121,8 +137,8 @@ window.addEventListener("DOMContentLoaded", () => {
   async function loadPaths() {
     const snap = await get(ref(db));
     const data = snap.val() || {};
-    pathSelector.innerHTML = "";
 
+    pathSelector.innerHTML = "";
     Object.keys(data).forEach(p => {
       const o = document.createElement("option");
       o.value = p;
@@ -135,27 +151,24 @@ window.addEventListener("DOMContentLoaded", () => {
 
   pathSelector.addEventListener("change",()=>loadData(pathSelector.value));
 
-  /* HISTORY BUTTON */
+  /* ================= HISTORY REDIRECT ================= */
   historyBtn.addEventListener("click", () => {
     const selectedMeter = pathSelector.value;
     if (!selectedMeter) {
       alert("Please select a meter first.");
       return;
     }
-    historySection.classList.remove("hidden");
-    historySection.scrollIntoView({ behavior: "smooth" });
+
+    window.location.href =
+      `history.html?meter=${encodeURIComponent(selectedMeter)}`;
   });
 
-  closeHistory.addEventListener("click", () => {
-    historySection.classList.add("hidden");
-  });
-
-  /* INIT */
   initCharts();
   loadPaths();
 
 });
-</script></head>
+</script>
+</head>
 
 <body class="text-gray-800 min-h-screen">
 
@@ -237,6 +250,7 @@ window.addEventListener("DOMContentLoaded", () => {
 
 </body>
 </html>
+
 
 
 
