@@ -8,270 +8,21 @@
 <script src="https://unpkg.com/feather-icons"></script>
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css"/>
 
 <style>
-  .card:hover {
-    transform: scale(1.05);
-    transition: .3s;
-    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.15);
-  }
-  body {
-    font-size: 1.06rem;
-    background-image: url('https://chenabengineering.com/wp-content/uploads/2023/06/istockphoto-1147790557-612x612-1.jpg');
-    background-size: cover;
-    background-position: center;
-    background-attachment: fixed;
-  }
-</style>
-
-<script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-  import { getDatabase, ref, onValue, off, get } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
-
-  const firebaseConfig = {
-    apiKey: "AIzaSyApTAM7ZAvxHBDjVNFe7ARN5iNtshA8TFQ",
-    authDomain: "energy-monitoring-chenab-60e72.firebaseapp.com",
-    databaseURL: "https://energy-monitoring-chenab-60e72-default-rtdb.firebaseio.com",
-    projectId: "energy-monitoring-chenab-60e72"
-  };
-
-  const app = initializeApp(firebaseConfig);
-  const db = getDatabase(app);
-
-  /* ===================== FIELDS ===================== */
-  const fields = [
-    "VOLTAGE_AB","VOLTAGE_BC","VOLTAGE_CA",
-    "AVERAGE_PHASE_VOLTAGE",
-    "L1_Voltage","L2_Voltage","L3_Voltage",
-    "AVERAGE_VOLTAGE",
-    "current_phase_1","current_phase_2","current_phase_3",
-    "Average_current",
-    "POWER_PHASE_A","POWER_PHASE_B","POWER_PHASE_C",
-    "TOTAL_POWER",
-    "FREQUENCY",
-    "PowerFactorTotal",
-    "TotalKWh",
-    "Present_Demand",
-    "Maximum_Demand_kW",
-    "Maximum_Demand_DateTime"
-  ];
-
-  /* ===================== ICONS ===================== */
-  const icons = {
-    VOLTAGE_AB:"zap",VOLTAGE_BC:"zap",VOLTAGE_CA:"zap",
-    AVERAGE_PHASE_VOLTAGE:"zap",
-    L1_Voltage:"zap",L2_Voltage:"zap",L3_Voltage:"zap",
-    AVERAGE_VOLTAGE:"zap",
-    current_phase_1:"activity",current_phase_2:"activity",current_phase_3:"activity",
-    Average_current:"activity",
-    POWER_PHASE_A:"battery-charging",
-    POWER_PHASE_B:"battery-charging",
-    POWER_PHASE_C:"battery-charging",
-    TOTAL_POWER:"battery",
-    FREQUENCY:"refresh-cw",
-    PowerFactorTotal:"percent",
-    TotalKWh:"database",
-    Present_Demand:"activity",
-    Maximum_Demand_kW:"trending-up",
-    Maximum_Demand_DateTime:"clock"
-  };
-
-  /* ===================== COLORS ===================== */
-  const fieldColors = {
-    VOLTAGE_AB:"bg-blue-100",VOLTAGE_BC:"bg-blue-100",VOLTAGE_CA:"bg-blue-100",
-    AVERAGE_PHASE_VOLTAGE:"bg-blue-100",
-    L1_Voltage:"bg-blue-100",L2_Voltage:"bg-blue-100",L3_Voltage:"bg-blue-100",
-    AVERAGE_VOLTAGE:"bg-blue-100",
-    current_phase_1:"bg-yellow-100",current_phase_2:"bg-yellow-100",current_phase_3:"bg-yellow-100",
-    Average_current:"bg-yellow-100",
-    POWER_PHASE_A:"bg-orange-100",POWER_PHASE_B:"bg-orange-100",POWER_PHASE_C:"bg-orange-100",
-    TOTAL_POWER:"bg-orange-100",
-    FREQUENCY:"bg-indigo-100",
-    PowerFactorTotal:"bg-green-100",
-    TotalKWh:"bg-red-100",
-    Present_Demand:"bg-purple-100",
-    Maximum_Demand_kW:"bg-red-200",
-    Maximum_Demand_DateTime:"bg-gray-200"
-  };
-
-  /* ===================== PM5300 DATETIME FIX ===================== */
-function normalizePM5300DateTime(raw) {
-  if (!raw || typeof raw !== "string") return raw;
-
-  raw = raw.trim();
-
-  let dd, mm, yy, hh, mi, ss;
-
-  let m = raw.match(/^(\d{2})\/(\d{2})\/(\d{2})\s+(\d{2}):(\d{2}):(\d{2})$/);
-  if (m) {
-    dd = +m[1];
-    mm = +m[2];
-    yy = 2000 + +m[3];
-    hh = +m[4];
-    mi = +m[5];
-    ss = +m[6];
-  }
-
-  if ([dd, mm, yy, hh, mi, ss].some(v => v === undefined)) return raw;
-
-  // 🔑 AUTO-CORRECT HH/MM SWAP
-  if (mi > 23 && hh <= 59) {
-    const t = hh;
-    hh = mi;
-    mi = t;
-  }
-
-  const iso =
-    `${yy}-${String(mm).padStart(2, "0")}-${String(dd).padStart(2, "0")}T` +
-    `${String(hh).padStart(2, "0")}:${String(mi).padStart(2, "0")}:${String(ss).padStart(2, "0")}`;
-
-  const dt = new Date(iso);
-  if (isNaN(dt)) return raw;
-
-  return dt.toLocaleString("en-PK", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
-    hour12: true,
-    timeZone: "Asia/Karachi"
-  });
+.card:hover {
+  transform: scale(1.05);
+  transition: .3s;
+  box-shadow: 0 10px 20px rgba(0,0,0,0.15);
 }
-
-
-  /* ===================== ELEMENTS ===================== */
-  const cards = document.getElementById("cards");
-  const pathSelector = document.getElementById("pathSelector");
-  const clockEl = document.getElementById("clock");
-
-  /* ===================== CHART SETUP ===================== */
-  const labels = [];
-  let voltageChart, currentChart, powerChart;
-
-  function createChart(ctx, label, color) {
-    return new Chart(ctx, {
-      type: "line",
-      data: { labels, datasets: [{ label, data: [], borderColor: color, borderWidth: 3, tension: 0.4, pointRadius: 2 }] },
-      options: { responsive:true, animation:false, plugins:{ legend:{ display:false } } }
-    });
-  }
-
-  function initCharts() {
-    voltageChart = createChart(document.getElementById("voltageChart"), "Average Voltage (V)", "rgb(59,130,246)");
-    currentChart = createChart(document.getElementById("currentChart"), "Average Current (A)", "rgb(251,146,60)");
-    powerChart   = createChart(document.getElementById("powerChart"), "Total Power (kW)", "rgb(34,197,94)");
-  }
-
-  function updateCharts(d) {
-    const t = new Date().toLocaleTimeString("en-PK",{hour12:false});
-    if (labels.length > 50) {
-      labels.shift();
-      voltageChart.data.datasets[0].data.shift();
-      currentChart.data.datasets[0].data.shift();
-      powerChart.data.datasets[0].data.shift();
-    }
-    labels.push(t);
-    voltageChart.data.datasets[0].data.push(d.AVERAGE_VOLTAGE || 0);
-    currentChart.data.datasets[0].data.push(d.Average_current || 0);
-    powerChart.data.datasets[0].data.push(d.TOTAL_POWER || 0);
-    voltageChart.update('none');
-    currentChart.update('none');
-    powerChart.update('none');
-  }
-
-  /* ===================== CARDS ===================== */
-  function updateCards(data) {
-    cards.innerHTML = "";
-    fields.forEach(f => {
-      if (data[f] === undefined) return;
-      const d = document.createElement("div");
-      d.className = `card p-4 rounded-xl shadow-lg ${fieldColors[f] || "bg-white"} text-center`;
-      d.innerHTML = `
-        <div class="flex justify-center mb-2 text-3xl text-gray-700">
-          <i data-feather="${icons[f] || "box"}"></i>
-        </div>
-        <h2 class="text-sm font-bold">${f.replace(/_/g,' ')}</h2>
-        <p class="text-2xl font-bold mt-1">
-          ${
-            f === "Maximum_Demand_DateTime"
-              ? normalizePM5300DateTime(data[f])
-              : (typeof data[f] === "number" ? Number(data[f]).toFixed(2) : data[f])
-          }
-          ${["VOLTAGE_AB","VOLTAGE_BC","VOLTAGE_CA","AVERAGE_VOLTAGE","L1_Voltage","L2_Voltage","L3_Voltage","AVERAGE_PHASE_VOLTAGE"].includes(f) ? " V" : ""}
-          ${["current_phase_1","current_phase_2","current_phase_3","Average_current"].includes(f) ? " A" : ""}
-          ${["POWER_PHASE_A","POWER_PHASE_B","POWER_PHASE_C","TOTAL_POWER","Present_Demand","Maximum_Demand_kW"].includes(f) ? " kW" : ""}
-          ${f === "TotalKWh" ? " kWh" : ""}
-          ${f === "FREQUENCY" ? " Hz" : ""}
-        </p>`;
-      cards.appendChild(d);
-    });
-    feather.replace();
-  }
-
-  /* ===================== DATA ===================== */
-  let lastPath = null;
-  function loadData(p) {
-    if (lastPath) off(ref(db, lastPath));
-    lastPath = p;
-    onValue(ref(db, p), snap => {
-      const d = snap.val();
-      if (!d) return;
-      updateCards(d);
-      updateCharts(d);
-    });
-  }
-
-  async function loadPaths() {
-    const snap = await get(ref(db));
-    const data = snap.val() || {};
-    pathSelector.innerHTML = "";
-    Object.keys(data).forEach(p => {
-      const o = document.createElement("option");
-      o.value = p;
-      o.textContent = p.replace(/_/g,' ');
-      pathSelector.appendChild(o);
-    });
-    if (pathSelector.value) loadData(pathSelector.value);
-  }
-
-  function updateClock() {
-    clockEl.textContent = new Date().toLocaleString("en-PK",{timeZone:"Asia/Karachi"});
-  }
-  setInterval(updateClock,1000);
-  updateClock();
-
-  pathSelector.addEventListener("change",()=>loadData(pathSelector.value));
-  // ===================== HISTORY BUTTON =====================
-const historyBtn = document.getElementById("historyBtn");
-
-// ===================== HISTORY BUTTON =====================
-const historyBtn = document.getElementById("historyBtn");
-const historySection = document.getElementById("historySection");
-const closeHistory = document.getElementById("closeHistory");
-
-historyBtn.addEventListener("click", () => {
-  const selectedMeter = pathSelector.value;
-  if (!selectedMeter) {
-    alert("Please select a meter first.");
-    return;
-  }
-
-  // Show history section
-  historySection.classList.remove("hidden");
-
-  // Scroll to history
-  historySection.scrollIntoView({ behavior: "smooth" });
-});
-
-closeHistory.addEventListener("click", () => {
-  historySection.classList.add("hidden");
-});
-  window.addEventListener("load",()=>{ initCharts(); loadPaths(); });
-
-</script>
+body{
+  font-size:1.06rem;
+  background-image:url('https://chenabengineering.com/wp-content/uploads/2023/06/istockphoto-1147790557-612x612-1.jpg');
+  background-size:cover;
+  background-position:center;
+  background-attachment:fixed;
+}
+</style>
 </head>
 
 <body class="text-gray-800 min-h-screen">
@@ -279,17 +30,17 @@ closeHistory.addEventListener("click", () => {
 <header class="bg-green-700 text-white p-4">
   <div class="container mx-auto flex justify-between items-center">
     <div class="flex items-center gap-3">
-  <div>
-    <label>Select Section:</label>
-    <select id="pathSelector" class="text-black p-2 rounded ml-2"></select>
-  </div>
+      <div>
+        <label>Select Section:</label>
+        <select id="pathSelector" class="text-black p-2 rounded ml-2"></select>
+      </div>
 
-  <!-- 🔵 HISTORY BUTTON -->
-  <button id="historyBtn"
-    class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded shadow">
-    History
-  </button>
-</div>
+      <button id="historyBtn"
+        class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded shadow">
+        History
+      </button>
+    </div>
+
     <div class="text-center">
       <h1 class="text-2xl font-bold">Smart Energy Dashboard</h1>
       <div id="clock" class="text-sm"></div>
@@ -298,69 +49,134 @@ closeHistory.addEventListener("click", () => {
 </header>
 
 <main class="p-6 container mx-auto">
-  <section id="cards" class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-10"></section>
 
-  <section class="grid grid-cols-1 md:grid-cols-3 gap-8">
-    <div class="bg-white p-6 rounded-xl shadow-xl">
-      <h2 class="text-center text-xl font-bold mb-4 text-blue-600">Live Voltage</h2>
-      <canvas id="voltageChart"></canvas>
-    </div>
-    <div class="bg-white p-6 rounded-xl shadow-xl">
-      <h2 class="text-center text-xl font-bold mb-4 text-orange-600">Live Current</h2>
-      <canvas id="currentChart"></canvas>
-    </div>
-    <div class="bg-white p-6 rounded-xl shadow-xl">
-      <h2 class="text-center text-xl font-bold mb-4 text-green-600">Live Power</h2>
-      <canvas id="powerChart"></canvas>
-    </div>
-  </section>
-  <!-- ===================== HISTORY SECTION ===================== -->
+<section id="cards" class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-10"></section>
+
+<section class="grid grid-cols-1 md:grid-cols-3 gap-8">
+  <div class="bg-white p-6 rounded-xl shadow-xl">
+    <h2 class="text-center text-xl font-bold mb-4 text-blue-600">Live Voltage</h2>
+    <canvas id="voltageChart"></canvas>
+  </div>
+  <div class="bg-white p-6 rounded-xl shadow-xl">
+    <h2 class="text-center text-xl font-bold mb-4 text-orange-600">Live Current</h2>
+    <canvas id="currentChart"></canvas>
+  </div>
+  <div class="bg-white p-6 rounded-xl shadow-xl">
+    <h2 class="text-center text-xl font-bold mb-4 text-green-600">Live Power</h2>
+    <canvas id="powerChart"></canvas>
+  </div>
+</section>
+
 <section id="historySection" class="hidden mt-10 bg-white p-6 rounded-xl shadow-xl">
   <div class="flex justify-between items-center mb-4">
     <h2 class="text-xl font-bold text-gray-700">Meter History</h2>
-    <div class="flex flex-wrap gap-4 mt-4 mb-4">
-  <div>
-    <label class="text-sm font-semibold">Select Date:</label><br>
-    <input type="date" id="historyDate" class="border p-2 rounded">
-  </div>
-
-  <div>
-    <label class="text-sm font-semibold">Select Time:</label><br>
-    <input type="time" id="historyTime" class="border p-2 rounded">
-  </div>
-
-  <div class="flex items-end">
-    <button id="searchHistory"
-      class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded shadow">
-      Search
-    </button>
-  </div>
-</div>
-    <button id="closeHistory" class="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded">
-      Close
-    </button>
-  </div>
-
-  <div class="overflow-x-auto">
-    <table class="min-w-full text-sm text-left border">
-      <thead class="bg-gray-200">
-        <tr id="historyHead"></tr>
-      </thead>
-      <tbody id="historyBody"></tbody>
-    </table>
+    <button id="closeHistory" class="bg-red-500 text-white px-3 py-1 rounded">Close</button>
   </div>
 </section>
+
 </main>
+
+<!-- ================= JS MOVED TO BOTTOM ================= -->
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getDatabase, ref, onValue, off, get } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyApTAM7ZAvxHBDjVNFe7ARN5iNtshA8TFQ",
+  authDomain: "energy-monitoring-chenab-60e72.firebaseapp.com",
+  databaseURL: "https://energy-monitoring-chenab-60e72-default-rtdb.firebaseio.com",
+  projectId: "energy-monitoring-chenab-60e72"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
+
+/* ELEMENTS */
+const cards = document.getElementById("cards");
+const pathSelector = document.getElementById("pathSelector");
+const clockEl = document.getElementById("clock");
+const historyBtn = document.getElementById("historyBtn");
+const historySection = document.getElementById("historySection");
+const closeHistory = document.getElementById("closeHistory");
+
+/* CLOCK */
+function updateClock(){
+  clockEl.textContent = new Date().toLocaleString("en-PK",{timeZone:"Asia/Karachi"});
+}
+setInterval(updateClock,1000);
+updateClock();
+
+/* CHARTS */
+const labels=[];
+let voltageChart,currentChart,powerChart;
+
+function createChart(ctx,label,color){
+  return new Chart(ctx,{
+    type:"line",
+    data:{labels,datasets:[{label,data:[],borderColor:color,borderWidth:3,tension:0.4,pointRadius:2}]},
+    options:{responsive:true,animation:false,plugins:{legend:{display:false}}}
+  });
+}
+
+function initCharts(){
+  voltageChart=createChart(document.getElementById("voltageChart"),"Voltage","blue");
+  currentChart=createChart(document.getElementById("currentChart"),"Current","orange");
+  powerChart=createChart(document.getElementById("powerChart"),"Power","green");
+}
+
+/* LOAD DATA */
+let lastPath=null;
+
+function loadData(p){
+  if(lastPath) off(ref(db,lastPath));
+  lastPath=p;
+  onValue(ref(db,p),snap=>{
+    const d=snap.val();
+    if(!d) return;
+    cards.innerHTML="";
+    Object.keys(d).forEach(key=>{
+      const div=document.createElement("div");
+      div.className="card bg-white p-4 rounded-xl shadow text-center";
+      div.innerHTML=`<h2 class="font-bold">${key}</h2>
+                     <p class="text-xl">${d[key]}</p>`;
+      cards.appendChild(div);
+    });
+    feather.replace();
+  });
+}
+
+async function loadPaths(){
+  const snap=await get(ref(db));
+  const data=snap.val()||{};
+  pathSelector.innerHTML="";
+  Object.keys(data).forEach(p=>{
+    const o=document.createElement("option");
+    o.value=p;
+    o.textContent=p.replace(/_/g,' ');
+    pathSelector.appendChild(o);
+  });
+  if(pathSelector.value) loadData(pathSelector.value);
+}
+
+pathSelector.addEventListener("change",()=>loadData(pathSelector.value));
+
+/* HISTORY BUTTON */
+historyBtn.addEventListener("click",()=>{
+  historySection.classList.remove("hidden");
+  historySection.scrollIntoView({behavior:"smooth"});
+});
+
+closeHistory.addEventListener("click",()=>{
+  historySection.classList.add("hidden");
+});
+
+/* INIT */
+window.addEventListener("load",()=>{
+  initCharts();
+  loadPaths();
+});
+</script>
 
 </body>
 </html>
-
-
-
-
-
-
-
-
-
-
