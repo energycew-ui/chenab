@@ -72,8 +72,8 @@ if(!selectedDate||!timeFrom||!timeTo){
 alert("Please select date and time range.");
 return;
 }
-const fromDateTime=new Date(`${selectedDate}T${timeFrom}:00`);
-const toDateTime=new Date(`${selectedDate}T${timeTo}:59`);
+const fromStr=`${selectedDate} ${timeFrom}:00`;
+const toStr=`${selectedDate} ${timeTo}:59`;
 const res=await fetch(url);
 const text=await res.text();
 const json=JSON.parse(text.substr(47).slice(0,-2));
@@ -83,8 +83,8 @@ document.getElementById("tableHead").innerHTML=headers.map(h=>`<th class="border
 let filtered=[];
 rows.forEach(r=>{
 if(!r.c||!r.c[0]||!r.c[0].v)return;
-const rowDate=new Date(r.c[0].v.replace(" ","T"));
-if(rowDate>=fromDateTime&&rowDate<=toDateTime){
+const rowStr=r.c[0].v;
+if(rowStr>=fromStr&&rowStr<=toStr){
 filtered.push(r);
 }
 });
