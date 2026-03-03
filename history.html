@@ -81,10 +81,31 @@ const rows=json.table.rows;
 const headers=json.table.cols.map(c=>c.label);
 document.getElementById("tableHead").innerHTML=headers.map(h=>`<th class="border px-3 py-2">${h}</th>`).join("");
 let filtered=[];
+
 rows.forEach(r=>{
 if(!r.c||!r.c[0]||!r.c[0].v)return;
-const rowStr=r.c[0].v;
-if(rowStr>=fromStr&&rowStr<=toStr){
+
+const rowStr=r.c[0].v; // "2026-03-03 10:13:59"
+const parts=rowStr.split(" ");
+if(parts.length<2)return;
+
+const rowDate=parts[0];
+const rowTime=parts[1];
+
+if(rowDate!==selectedDate)return;
+
+const timeParts=rowTime.split(":");
+if(timeParts.length<2)return;
+
+const rowMinutes=parseInt(timeParts[0])*60+parseInt(timeParts[1]);
+
+const fromParts=timeFrom.split(":");
+const fromMinutes=parseInt(fromParts[0])*60+parseInt(fromParts[1]);
+
+const toParts=timeTo.split(":");
+const toMinutes=parseInt(toParts[0])*60+parseInt(toParts[1]);
+
+if(rowMinutes>=fromMinutes && rowMinutes<=toMinutes){
 filtered.push(r);
 }
 });
