@@ -85,7 +85,17 @@ let filtered=[];
 rows.forEach(r=>{
 if(!r.c||!r.c[0]||!r.c[0].v)return;
 
-const rowStr=r.c[0].v; // "2026-03-03 10:13:59"
+let rowStr=r.c[0].v;
+
+if(typeof rowStr!=="string"){
+const d=new Date(rowStr);
+const yyyy=d.getFullYear();
+const mm=String(d.getMonth()+1).padStart(2,"0");
+const dd=String(d.getDate()).padStart(2,"0");
+const hh=String(d.getHours()).padStart(2,"0");
+const mi=String(d.getMinutes()).padStart(2,"0");
+rowStr=`${yyyy}-${mm}-${dd} ${hh}:${mi}:00`;
+}
 const parts=rowStr.split(" ");
 if(parts.length<2)return;
 
