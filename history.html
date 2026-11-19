@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Smart Energy Dashboard - History</title>
 <script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <style>
 body{
 font-size:1.06rem;
@@ -13,11 +14,13 @@ background-size:cover;
 background-position:center;
 background-attachment:fixed;
 }
+th{position:sticky;top:0;background:#e5e7eb;white-space:nowrap}
+td{white-space:nowrap}
 </style>
 </head>
 <body class="text-gray-800 min-h-screen">
 <header class="bg-green-700 text-white p-4">
-<div class="container mx-auto flex justify-between items-center">
+<div class="container mx-auto flex justify-between items-center flex-wrap gap-3">
 <div>
 <h1 class="text-2xl font-bold">Smart Energy Dashboard - History</h1>
 <p id="meterName" class="text-sm"></p>
@@ -28,104 +31,264 @@ background-attachment:fixed;
 </div>
 </div>
 </header>
+
 <main class="container mx-auto p-6">
+
 <div class="bg-white p-6 rounded-xl shadow-xl mb-6">
-<div class="grid md:grid-cols-4 gap-4 items-end">
+<div class="grid md:grid-cols-5 gap-4 items-end">
 <div>
-<label class="font-semibold text-sm">Select Date</label>
-<input type="date" id="historyDate" class="border p-2 rounded w-full">
+<label class="font-semibold text-sm">From date</label>
+<input type="date" id="dateFrom" class="border p-2 rounded w-full">
 </div>
 <div>
-<label class="font-semibold text-sm">Time From</label>
+<label class="font-semibold text-sm">From time</label>
 <input type="time" id="timeFrom" class="border p-2 rounded w-full">
 </div>
 <div>
-<label class="font-semibold text-sm">Time To</label>
+<label class="font-semibold text-sm">To date</label>
+<input type="date" id="dateTo" class="border p-2 rounded w-full">
+</div>
+<div>
+<label class="font-semibold text-sm">To time</label>
 <input type="time" id="timeTo" class="border p-2 rounded w-full">
 </div>
 <div>
 <button id="searchBtn" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded w-full">Search History</button>
 </div>
 </div>
+<div class="flex flex-wrap gap-2 mt-4 text-sm">
+<span class="font-semibold self-center">Quick:</span>
+<button data-quick="1h"  class="quick bg-gray-200 hover:bg-gray-300 px-3 py-1 rounded">Last 1 hour</button>
+<button data-quick="today" class="quick bg-gray-200 hover:bg-gray-300 px-3 py-1 rounded">Today</button>
+<button data-quick="24h" class="quick bg-gray-200 hover:bg-gray-300 px-3 py-1 rounded">Last 24 hours</button>
+<button data-quick="yday" class="quick bg-gray-200 hover:bg-gray-300 px-3 py-1 rounded">Yesterday</button>
+<button data-quick="7d"  class="quick bg-gray-200 hover:bg-gray-300 px-3 py-1 rounded">Last 7 days</button>
+<button id="csvBtn" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded ml-auto" disabled>Download CSV</button>
 </div>
-<div class="bg-white p-6 rounded-xl shadow-xl overflow-x-auto">
+<p id="info" class="text-sm text-gray-600 mt-3"></p>
+</div>
+
+<div id="chartCard" class="bg-white p-6 rounded-xl shadow-xl mb-6 hidden">
+<div class="flex items-center gap-3 mb-3">
+<label class="font-semibold text-sm">Chart:</label>
+<select id="chartField" class="border p-1 rounded"></select>
+</div>
+<canvas id="histChart" height="90"></canvas>
+</div>
+
+<div class="bg-white p-6 rounded-xl shadow-xl overflow-auto" style="max-height:70vh">
 <table class="min-w-full text-sm text-left border">
-<thead class="bg-gray-200">
+<thead>
 <tr id="tableHead"></tr>
 </thead>
 <tbody id="tableBody"></tbody>
 </table>
 </div>
 </main>
+
 <script>
-const sheetID="1zsuG8lYGSOH8XDAWLx5mGi2MM2mMUDpwcoaHolVeEkE";
-const sheetName="Sheet1";
-const url=`https://docs.google.com/spreadsheets/d/${sheetID}/gviz/tq?tqx=out:json&sheet=${sheetName}`;
-const params=new URLSearchParams(window.location.search);
-const meter=params.get("meter");
-document.getElementById("meterName").innerText="Meter: "+(meter?meter:"Unknown");
-document.getElementById("searchBtn").addEventListener("click",async()=>{
-const selectedDate=document.getElementById("historyDate").value;
-const timeFrom=document.getElementById("timeFrom").value;
-const timeTo=document.getElementById("timeTo").value;
-if(!selectedDate||!timeFrom||!timeTo){
-alert("Please select date and time range.");
-return;
+/* ======================= CONFIG ======================= */
+const DB_URL = "https://energy-monitoring-chenab-60e72-default-rtdb.firebaseio.com";
+const HISTORY_ROOT = "history";                 // must match HISTORY_ROOT in the meter firmware
+const TZ_OFFSET_S = 5 * 3600;                   // Pakistan, same as firmware
+const MAX_DAYS = 31;                            // firmware keeps ~30 days
+const MAX_TABLE_ROWS = 3000;                    // CSV always contains everything
+
+/* Old Google Sheet (used only when a meter has no Firebase history yet) */
+const sheetID = "1zsuG8lYGSOH8XDAWLx5mGi2MM2mMUDpwcoaHolVeEkE";
+const sheetName = "Sheet1";
+const sheetUrl = `https://docs.google.com/spreadsheets/d/${sheetID}/gviz/tq?tqx=out:json&sheet=${sheetName}`;
+
+/* Column order (same names as the live dashboard) */
+const FIELDS = [
+  ["VOLTAGE_AB","V"],["VOLTAGE_BC","V"],["VOLTAGE_CA","V"],["AVERAGE_PHASE_VOLTAGE","V"],
+  ["L1_Voltage","V"],["L2_Voltage","V"],["L3_Voltage","V"],["AVERAGE_VOLTAGE","V"],
+  ["current_phase_1","A"],["current_phase_2","A"],["current_phase_3","A"],["Average_current","A"],
+  ["POWER_PHASE_A","kW"],["POWER_PHASE_B","kW"],["POWER_PHASE_C","kW"],["TOTAL_POWER","kW"],
+  ["TOTAL_KVA","kVA"],["FREQUENCY","Hz"],["PowerFactorTotal",""],["TotalKWh","kWh"]
+];
+const CHART_DEFAULT = "TOTAL_POWER";
+
+/* ======================= STATE ======================= */
+const params = new URLSearchParams(window.location.search);
+const meter = params.get("meter");
+document.getElementById("meterName").innerText = "Meter: " + (meter ? meter.replace(/_/g," ") : "Unknown");
+const $ = id => document.getElementById(id);
+let lastResult = null;   // {headers:[], rows:[[...]], source:""}
+let chart = null;
+
+/* ======================= TIME HELPERS =======================
+   Firmware key = "Timestamp" = local epoch (UTC + 5 h) as text.
+   Treat the picked Pakistan date/time as if it were UTC -> same number.
+   Works the same in any browser time zone. */
+function toKey(dateStr, timeStr, endOfMinute) {
+  const [y,m,d] = dateStr.split("-").map(Number);
+  const [h,mi]  = timeStr.split(":").map(Number);
+  return Math.floor(Date.UTC(y, m-1, d, h, mi, endOfMinute ? 59 : 0) / 1000);
 }
-const fromStr=`${selectedDate} ${timeFrom}:00`;
-const toStr=`${selectedDate} ${timeTo}:59`;
-const res=await fetch(url);
-const text=await res.text();
-const json=JSON.parse(text.substr(47).slice(0,-2));
-const rows=json.table.rows;
-const headers=json.table.cols.map(c=>c.label);
-document.getElementById("tableHead").innerHTML=headers.map(h=>`<th class="border px-3 py-2">${h}</th>`).join("");
-let filtered=[];
-
-rows.forEach(r=>{
-if(!r.c||!r.c[0]||!r.c[0].v)return;
-
-let rowStr=r.c[0].v;
-
-if(typeof rowStr!=="string"){
-const d=new Date(rowStr);
-const yyyy=d.getFullYear();
-const mm=String(d.getMonth()+1).padStart(2,"0");
-const dd=String(d.getDate()).padStart(2,"0");
-const hh=String(d.getHours()).padStart(2,"0");
-const mi=String(d.getMinutes()).padStart(2,"0");
-rowStr=`${yyyy}-${mm}-${dd} ${hh}:${mi}:00`;
+function pkNow() { return new Date(Date.now() + TZ_OFFSET_S * 1000); }   // read with getUTC*
+const pad = n => String(n).padStart(2,"0");
+function setInputs(fromD, toD) {                 // Dates already shifted to PK, read as UTC
+  $("dateFrom").value = `${fromD.getUTCFullYear()}-${pad(fromD.getUTCMonth()+1)}-${pad(fromD.getUTCDate())}`;
+  $("timeFrom").value = `${pad(fromD.getUTCHours())}:${pad(fromD.getUTCMinutes())}`;
+  $("dateTo").value   = `${toD.getUTCFullYear()}-${pad(toD.getUTCMonth()+1)}-${pad(toD.getUTCDate())}`;
+  $("timeTo").value   = `${pad(toD.getUTCHours())}:${pad(toD.getUTCMinutes())}`;
 }
-const parts=rowStr.split(" ");
-if(parts.length<2)return;
-
-const rowDate=parts[0];
-const rowTime=parts[1];
-
-if(rowDate!==selectedDate)return;
-
-const timeParts=rowTime.split(":");
-if(timeParts.length<2)return;
-
-const rowMinutes=parseInt(timeParts[0])*60+parseInt(timeParts[1]);
-
-const fromParts=timeFrom.split(":");
-const fromMinutes=parseInt(fromParts[0])*60+parseInt(fromParts[1]);
-
-const toParts=timeTo.split(":");
-const toMinutes=parseInt(toParts[0])*60+parseInt(toParts[1]);
-
-if(rowMinutes>=fromMinutes && rowMinutes<=toMinutes){
-filtered.push(r);
+function keyToText(k) {
+  const d = new Date(Number(k) * 1000);
+  return `${d.getUTCFullYear()}-${pad(d.getUTCMonth()+1)}-${pad(d.getUTCDate())} ${pad(d.getUTCHours())}:${pad(d.getUTCMinutes())}:${pad(d.getUTCSeconds())}`;
 }
+
+/* ======================= QUICK RANGES ======================= */
+document.querySelectorAll(".quick").forEach(b => b.addEventListener("click", () => {
+  const now = pkNow(), q = b.dataset.quick;
+  let from = new Date(now), to = new Date(now);
+  if (q === "1h")   from = new Date(now - 3600e3);
+  if (q === "24h")  from = new Date(now - 86400e3);
+  if (q === "7d")   from = new Date(now - 7*86400e3);
+  if (q === "today"){ from.setUTCHours(0,0,0,0); }
+  if (q === "yday") { from = new Date(now - 86400e3); from.setUTCHours(0,0,0,0);
+                      to = new Date(from); to.setUTCHours(23,59,0,0); }
+  setInputs(from, to);
+  search();
+}));
+
+/* ======================= FIREBASE ======================= */
+async function loadFirebase(fromKey, toKey_) {
+  const q = `orderBy=${encodeURIComponent('"$key"')}`
+          + `&startAt=${encodeURIComponent(JSON.stringify(String(fromKey)))}`
+          + `&endAt=${encodeURIComponent(JSON.stringify(String(toKey_)))}`;
+  const url = `${DB_URL}/${HISTORY_ROOT}/${encodeURIComponent(meter)}.json?${q}`;
+  const res = await fetch(url);
+  if (!res.ok) throw new Error("Firebase " + res.status);
+  const data = (await res.json()) || {};
+  const keys = Object.keys(data).sort();
+  if (!keys.length) return null;
+
+  const present = FIELDS.filter(([f]) => keys.some(k => data[k][f] !== undefined));
+  const headers = ["Time", ...present.map(([f,u]) => u ? `${f} (${u})` : f), "Samples", "Flags"];
+  const rows = keys.map(k => {
+    const r = data[k];
+    return [r.time || keyToText(k),
+            ...present.map(([f]) => (typeof r[f] === "number") ? r[f] : ""),
+            String(r.samples ?? ""), r.flags ? flagText(r.flags) : ""];
+  });
+  return { headers, rows, fields: present.map(([f]) => f), source: "Firebase (meter flash history)" };
+}
+function flagText(f) {
+  const t = [];
+  if (f & 2) t.push("no meter data");
+  if (f & 4) t.push("some readings failed");
+  return t.join(", ") || String(f);
+}
+
+/* ======================= GOOGLE SHEET (old) ======================= */
+async function loadSheet(fromStr, toStr) {
+  const res = await fetch(sheetUrl);
+  const text = await res.text();
+  const json = JSON.parse(text.substr(47).slice(0,-2));
+  const headers = json.table.cols.map(c => c.label);
+  const rows = [];
+  json.table.rows.forEach(r => {
+    if (!r.c || !r.c[0] || !r.c[0].v) return;
+    let rowStr = r.c[0].v;
+    if (typeof rowStr !== "string") {
+      const d = new Date(rowStr);
+      rowStr = `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:00`;
+    } else if (rowStr.startsWith("Date(")) {          // gviz date format Date(y,m,d,h,mi,s)
+      const p = rowStr.slice(5,-1).split(",").map(Number);
+      rowStr = `${p[0]}-${pad(p[1]+1)}-${pad(p[2])} ${pad(p[3]||0)}:${pad(p[4]||0)}:${pad(p[5]||0)}`;
+    }
+    if (rowStr.length === 16) rowStr += ":00";
+    if (rowStr >= fromStr && rowStr <= toStr) rows.push(r.c.map((c,i) => i === 0 ? rowStr : (c ? c.v : "")));
+  });
+  if (!rows.length) return null;
+  return { headers, rows, fields: [], source: "Google Sheet (old method)" };
+}
+
+/* ======================= SEARCH ======================= */
+$("searchBtn").addEventListener("click", search);
+
+async function search() {
+  const dF = $("dateFrom").value, tF = $("timeFrom").value, dT = $("dateTo").value || dF, tT = $("timeTo").value;
+  if (!meter) { alert("No meter selected. Open History from the dashboard."); return; }
+  if (!dF || !tF || !tT) { alert("Please select date and time range."); return; }
+  const fromKey = toKey(dF, tF, false), toKey_ = toKey(dT, tT, true);
+  if (toKey_ < fromKey) { alert("'To' must be after 'From'."); return; }
+  if ((toKey_ - fromKey) > MAX_DAYS * 86400) { alert(`Please select at most ${MAX_DAYS} days.`); return; }
+
+  $("info").textContent = "Loading...";
+  $("searchBtn").disabled = true;
+  try {
+    let result = await loadFirebase(fromKey, toKey_);
+    if (!result) result = await loadSheet(`${dF} ${tF}:00`, `${dT} ${tT}:59`);
+    if (!result) {
+      lastResult = null;
+      $("tableHead").innerHTML = ""; $("tableBody").innerHTML = "";
+      $("chartCard").classList.add("hidden");
+      $("csvBtn").disabled = true;
+      $("info").textContent = "No records in selected range.";
+      alert("No records in selected range.");
+      return;
+    }
+    lastResult = result;
+    render(result);
+  } catch (e) {
+    $("info").textContent = "Error: " + e.message;
+  } finally {
+    $("searchBtn").disabled = false;
+  }
+}
+
+function render(r) {
+  $("tableHead").innerHTML = r.headers.map(h => `<th class="border px-3 py-2">${h}</th>`).join("");
+  const shown = r.rows.slice(-MAX_TABLE_ROWS).reverse();           // newest first
+  $("tableBody").innerHTML = shown.map(row =>
+    `<tr class="hover:bg-gray-50">${row.map(c =>
+      `<td class="border px-3 py-1">${typeof c === "number" ? c.toFixed(2) : c}</td>`).join("")}</tr>`).join("");
+  $("info").textContent = `${r.rows.length} records  |  source: ${r.source}`
+    + (r.rows.length > MAX_TABLE_ROWS ? `  |  table shows newest ${MAX_TABLE_ROWS}, CSV has all` : "");
+  $("csvBtn").disabled = false;
+  drawChart(r);
+}
+
+/* ======================= CHART ======================= */
+function drawChart(r) {
+  if (!r.fields.length) { $("chartCard").classList.add("hidden"); return; }
+  $("chartCard").classList.remove("hidden");
+  const sel = $("chartField");
+  const prev = sel.value || CHART_DEFAULT;
+  sel.innerHTML = r.fields.map(f => `<option value="${f}">${f.replace(/_/g," ")}</option>`).join("");
+  sel.value = r.fields.includes(prev) ? prev : r.fields[0];
+  const col = 1 + r.fields.indexOf(sel.value);
+  const labels = r.rows.map(row => row[0].slice(5, 16));          // MM-DD HH:MM
+  const data = r.rows.map(row => row[col] === "" ? null : row[col]);
+  if (chart) chart.destroy();
+  chart = new Chart($("histChart"), {
+    type: "line",
+    data: { labels, datasets: [{ label: sel.value, data, borderColor: "rgb(21,128,61)",
+            borderWidth: 2, pointRadius: 0, tension: 0.2, spanGaps: false }] },
+    options: { animation: false, plugins: { legend: { display: false } },
+               scales: { x: { ticks: { maxTicksLimit: 12 } } } }
+  });
+}
+$("chartField").addEventListener("change", () => lastResult && drawChart(lastResult));
+
+/* ======================= CSV ======================= */
+$("csvBtn").addEventListener("click", () => {
+  if (!lastResult) return;
+  const esc = v => { const s = String(v ?? ""); return /[",\n]/.test(s) ? `"${s.replace(/"/g,'""')}"` : s; };
+  const lines = [lastResult.headers.map(esc).join(","), ...lastResult.rows.map(r => r.map(esc).join(","))];
+  const blob = new Blob([lines.join("\r\n")], { type: "text/csv" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = `${meter}_${$("dateFrom").value}_to_${$("dateTo").value}.csv`;
+  a.click();
+  URL.revokeObjectURL(a.href);
 });
-if(filtered.length===0){
-alert("No records in selected range.");
-document.getElementById("tableBody").innerHTML="";
-return;
-}
-document.getElementById("tableBody").innerHTML=filtered.map(r=>`<tr>${r.c.map(cell=>`<td class="border px-3 py-2">${cell?cell.v:""}</td>`).join("")}</tr>`).join("");
-});
+
+/* default: today so far */
+(() => { const now = pkNow(); const from = new Date(now); from.setUTCHours(0,0,0,0); setInputs(from, now); })();
 </script>
 </body>
 </html>

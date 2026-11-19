@@ -95,6 +95,9 @@
     Maximum_Demand_DateTime:"bg-gray-200"
   };
 
+  /* Top-level nodes that are NOT meters (written by the v2 meter firmware) */
+  const HIDDEN_NODES = ["history", "history_untimed"];
+
   const cards = document.getElementById("cards");
   const pathSelector = document.getElementById("pathSelector");
   const clockEl = document.getElementById("clock");
@@ -165,11 +168,26 @@
     });
   }
 
+  /* Meter names only (shallow=true): does NOT download the data of every meter
+     and history. Hides the history nodes and broken names (e.g. from the old
+     EEPROM bug). */
+  function isMeterName(p) {
+    if (HIDDEN_NODES.includes(p)) return false;
+    if (p.includes("�") || p.includes("ï¿½")) return false;
+    return /^[\x20-\x7E]+$/.test(p);
+  }
+
   async function loadPaths() {
-    const snap = await get(ref(db));
-    const data = snap.val() || {};
+    let names = [];
+    try {
+      const res = await fetch(firebaseConfig.databaseURL + "/.json?shallow=true");
+      names = Object.keys((await res.json()) || {});
+    } catch (e) {
+      const snap = await get(ref(db));                 // fallback: old method
+      names = Object.keys(snap.val() || {});
+    }
     pathSelector.innerHTML = "";
-    Object.keys(data).forEach(p => {
+    names.filter(isMeterName).forEach(p => {
       const o = document.createElement("option");
       o.value = p;
       o.textContent = p.replace(/_/g,' ');
